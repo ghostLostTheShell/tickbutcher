@@ -4,7 +4,9 @@ from indicator import indicator, KData
 
 Kline = []
 def main():
-    ma = indicator.indicator(Kline, index=10, period=5).MA()
-    ema = indicator.indicator(Kline, index=10, period=5).EMA()
+    ma = indicator.indicator(Kline, index=30, period=5).MA()
+    ema = indicator.indicator(Kline, index=30, period=5).EMA()  
+
+    macd_calculator = indicator(Kline, index=30, period=12)
     print(f"MA: {ma}, EMA: {ema}")
     pass
