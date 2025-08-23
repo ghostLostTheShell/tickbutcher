@@ -10,6 +10,13 @@
       "request": "launch",
       "module": "unittest",
       "args": ["tests.test_contemplationer.ContemplationerUnitTest"]
+    },
+    {
+      "name": "[test] CandlefeedUnitTest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_candlefeed.CandlefeedUnitTest"]
     }
   ]
 }

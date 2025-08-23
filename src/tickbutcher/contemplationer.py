@@ -1,28 +1,22 @@
-
-from typing import Dict, List
+from datetime import datetime
+from tickbutcher.candlefeed import CandleFeedDB, TimeframeType
 from tickbutcher.products import FinancialInstrument
 from pandas import DataFrame
 
+
 class Contemplationer:
   
-  financial_type_tble:Dict[DataFrame, FinancialInstrument] = {}
-  time_interval:List[int]=[]
-  klines:List[DataFrame]=[] 
   
   def __init__(self):
+    self.candle_feed_db = CandleFeedDB()
     pass
 
-  def add_klines(self, data:DataFrame, financial_type:FinancialInstrument):
-    self.financial_type_tble[data] = financial_type
-    self.klines=data
-    
+  def add_kline(self, *, kline:DataFrame, financial_type:FinancialInstrument, timeframe:TimeframeType):
+    self.candle_feed_db.add_kline(kline=kline, financial_type=financial_type, timeframe=timeframe)
 
-  
-  def int_time_interval(self):
-    """根据 klines 初始化 time_interval"""
-    self.time_interval = [i for i in range(len(self.klines))]
 
   def run(self):
+    self.time_interval = self.candle_feed_db.get_time_intervals()
 
-    for scale in self.time_interval:
-      print(f"Contemplating {scale}")
+    for current_time in self.time_interval:
+      print(f"Current time: {datetime.fromtimestamp(current_time/1000)}")

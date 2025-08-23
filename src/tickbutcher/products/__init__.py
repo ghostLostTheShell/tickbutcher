@@ -11,7 +11,7 @@ class AssetType(Enum):
 class FinancialInstrument():
   """概况所有可交易资产"""
 
-  def __init__(self, symbol:str, name:str, type:AssetType):
+  def __init__(self, symbol:str, id:str, type:AssetType):
       self.symbol = symbol
-      self.name = name
+      self.id = id
       self.type = type
