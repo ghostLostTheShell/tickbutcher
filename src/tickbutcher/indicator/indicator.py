@@ -11,8 +11,6 @@ class KData:
         self.close = data['close']
         self.date = data['date']
 
-# 初始化一个空的 Kline 列表
-Kline = []
 
 class indicator:
     def __init__(self, Kline: KData, index=0, period=5):
