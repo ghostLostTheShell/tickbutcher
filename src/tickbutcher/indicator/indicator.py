@@ -94,7 +94,7 @@ class indicator:
         # 计算某种指标（示例）
         return max(self.high_values) - min(self.low_values)
 
-    def rsv(self):
+    def rsv(self, index):
         """
         根据倒序切片的数据，正确计算 RSV 值。
         """
