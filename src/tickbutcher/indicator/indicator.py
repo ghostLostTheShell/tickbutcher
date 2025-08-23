@@ -11,6 +11,8 @@ class KData:
         self.close = data['close']
         self.date = data['date']
 
+    def __getitem__(self, item):
+        return self.data.iloc[item]
 
 class indicator:
     def __init__(self, Kline: KData, index=0, period=5):
@@ -23,13 +25,13 @@ class indicator:
         self.period = period
 
         # 根据 index 和 period 获取 open 数据
-        open_values = [Kline.open[i] for i in range(index, index - period, -1)]
+        open_values = [Kline.open[i].item() for i in range(index - 1, index - period - 1, -1)]
         self.open_values = open_values
 
         # 初始化其他属性
-        self.high_values = [Kline.high[i] for i in range(index, index - period, -1)]
-        self.low_values = [Kline.low[i] for i in range(index, index - period, -1)]
-        self.close_values = [Kline.close[i] for i in range(index, index - period, -1)]
+        self.high_values = [Kline.high[i].item() for i in range(index - 1, index - period - 1, -1)]
+        self.low_values = [Kline.low[i].item() for i in range(index - 1, index - period - 1, -1)]
+        self.close_values = [Kline.close[i].item() for i in range(index - 1, index - period - 1, -1)]
 
     def MA(self):   
         # 计算简单移动平均线
