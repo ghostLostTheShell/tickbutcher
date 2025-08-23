@@ -6,6 +6,7 @@ from pandas import Period
 
 class KData:
     def __init__(self, data: DataFrame):
+        """K线数据类"""
         self.data = data
         self.open = data['open']
         self.high = data['high']
@@ -18,7 +19,7 @@ class KData:
     
     def __len__(self):
         return len(self.data)
-
+    
 class indicator:
     def __init__(self, Kline: KData, index=0, period=5):
         # 确保 index 和 period 的 范围有效
