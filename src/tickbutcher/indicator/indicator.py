@@ -1,21 +1,23 @@
+from pandas import DataFrame
 import math
 import random
 
 class KData:
-    def __init__(self, open=0, high=0, low=0, close=0):
-        self.open = open
-        self.high = high
-        self.low = low
-        self.close = close
-        self.date = None
+    def __init__(self, data: DataFrame):
+        self.data = data
+        self.open = data['open']
+        self.high = data['high']
+        self.low = data['low']
+        self.close = data['close']
+        self.date = data['date']
 
 # 初始化一个空的 Kline 列表
 Kline = []
 
 class indicator:
-    def __init__(self, Kline, index=0, period=5):
+    def __init__(self, Kline: KData, index=0, period=5):
         # 确保 index 和 period 的 范围有效
-        if len(Kline) < period:
+        if len(Kline.data) < period:
             raise ValueError("Kline 数据长度不足以计算指定的周期")
 
         self.Kline = Kline
@@ -23,13 +25,13 @@ class indicator:
         self.period = period
 
         # 根据 index 和 period 获取 open 数据
-        open_values = [Kline[i].open for i in range(index, index - period, -1)]
+        open_values = [Kline.open[i] for i in range(index, index - period, -1)]
         self.open_values = open_values
 
         # 初始化其他属性
-        self.high_values = [Kline[i].high for i in range(index, index - period, -1)]
-        self.low_values = [Kline[i].low for i in range(index, index - period, -1)]
-        self.close_values = [Kline[i].close for i in range(index, index - period, -1)]
+        self.high_values = [Kline.high[i] for i in range(index, index - period, -1)]
+        self.low_values = [Kline.low[i] for i in range(index, index - period, -1)]
+        self.close_values = [Kline.close[i] for i in range(index, index - period, -1)]
 
     def MA(self):   
         # 计算简单移动平均线
