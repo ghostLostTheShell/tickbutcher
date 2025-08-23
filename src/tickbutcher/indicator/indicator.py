@@ -1,3 +1,4 @@
+import re
 from pandas import DataFrame
 import math
 import random
@@ -13,6 +14,9 @@ class KData:
 
     def __getitem__(self, item):
         return self.data.iloc[item]
+    
+    def __len__(self):
+        return len(self.data)
 
 class indicator:
     def __init__(self, Kline: KData, index=0, period=5):
@@ -62,7 +66,7 @@ class indicator:
             return 50.0
         return (current_close - low_min) / (high_max - low_min) * 100
 
-    def kdj(self):
+    def kdj(self, prev_k, prev_d):
         """
         计算单点的 KDJ 值。
         这个方法必须依赖外部传入的前一日 K 和 D 值。
@@ -80,13 +84,12 @@ class indicator:
         # 4. 计算当日 J 值
         j = 3 * k - 2 * d
         
-        for i in range(5, len(Kline)):
-         ind = indicator(Kline, index=i, period=5)
-         k, d, j = ind.kdj(prev_k, prev_d)
-         print(f"Index {i}: K={k}, D={d}, J={j}")
-        # 更新 prev_k 和 prev_d
-         prev_k, prev_d = k, d
-         return k, d, j
+        for i in range(5, len(self.Kline)):
+            k, d, j = self.kdj(prev_k, prev_d)
+            print(f"Index {i}: K={k}, D={d}, J={j}")
+            # 更新 prev_k 和 prev_d
+            prev_k, prev_d = k, d
+        return k, d, j
 
     def RSI(self):
         """
