@@ -2,7 +2,10 @@ import re
 from pandas import DataFrame
 import math
 import random
-from pandas import Period
+from pandas import Period, read_json
+import test
+
+from tests.dataset import btc, sol
 
 class KData:
     def __init__(self, data: DataFrame):
@@ -265,3 +268,9 @@ class indicator:
         histogram = macd_line - signal_line
 
         return macd_line, signal_line, histogram
+    
+
+if __name__ == "__main__":
+    test_data = (btc.USDT_T_BTC)
+    test_df = read_json(test_data)
+    print(test_df)
