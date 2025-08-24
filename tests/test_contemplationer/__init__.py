@@ -3,6 +3,7 @@ import unittest
 
 import pandas as pd
 from tickbutcher.candlefeed import TimeframeType
+from tickbutcher.commission import MakerTakerCommission
 from tickbutcher.contemplationer import Contemplationer
 from tickbutcher.products import AssetType, FinancialInstrument
 from ..dataset import sol,btc
@@ -35,15 +36,14 @@ class ContemplationerUnitTest(unittest.TestCase):
     sol_df = pd.read_json(StringIO(sol.USDT_T_SOL), convert_dates=False).set_index('timestamp')
     btc_df = pd.read_json(StringIO(btc.USDT_T_BTC), convert_dates=False).set_index('timestamp')
     
-    
+    commission = MakerTakerCommission(maker_rate=0.001, taker_rate=0.002)
     contemplationer = Contemplationer()
     btc_usdt_ps = FinancialInstrument("BTC/USDT", id="BTC_USDT_PS", type=AssetType.PerpetualSwap)
-    contemplationer.add_kline(kline=btc_df, financial_type=btc_usdt_ps, timeframe=TimeframeType.H1)
-    
+    contemplationer.add_kline(kline=btc_df, financial_type=btc_usdt_ps, timeframe=TimeframeType.H1, commission=commission)
+
     sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOL_USDT_PS", type=AssetType.PerpetualSwap)
-    contemplationer.add_kline(kline=sol_df, financial_type=sol_usdt_ps, timeframe=TimeframeType.H1)
-    
-    
+    contemplationer.add_kline(kline=sol_df, financial_type=sol_usdt_ps, timeframe=TimeframeType.H1, commission=commission)
+
     contemplationer.run()
     
     

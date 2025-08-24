@@ -1,6 +1,7 @@
 import enum
 from typing import Dict, List, TypedDict
 from pandas import DataFrame
+from tickbutcher.commission import Commission
 from tickbutcher.products import FinancialInstrument
 
 class TimeframeType(enum.Enum):
@@ -27,13 +28,14 @@ class TimeframeDict(TypedDict):
 class CandleFeedDB:
     klines: List[DataFrame]
     financial_type_tble:Dict[FinancialInstrument, TimeframeDict]
-    
+    commission_tble: Dict[FinancialInstrument, Commission]
 
     def __init__(self):
       self.klines = []
       self.financial_type_tble = {}
+      self.commission_tble = {}
 
-    def add_kline(self, *, kline: DataFrame, financial_type: FinancialInstrument, timeframe: TimeframeType):
+    def add_kline(self, *, kline: DataFrame, financial_type: FinancialInstrument, timeframe: TimeframeType, commission: Commission):
       #根据时间周期将K线数据添加到相应的字典中
       if financial_type not in self.financial_type_tble:
           self.financial_type_tble[financial_type] = TimeframeDict(
@@ -49,7 +51,8 @@ class CandleFeedDB:
       self.financial_type_tble[financial_type][timeframe.value] = kline
 
       self.klines.append(kline)
-      self.financial_type_tble[financial_type][timeframe.value] = kline 
+      self.financial_type_tble[financial_type][timeframe.value] = kline
+      self.commission_tble[financial_type] = commission
 
     def get_klines(self):
       return self.klines
@@ -67,10 +70,9 @@ class CandleFeedDB:
           
       return current
 
+    def get_commission(self, financial_type: FinancialInstrument):
+      return self.commission_tble[financial_type]
 
-
-    
-    
 class CandleFeedProxy:
     position: int
     dataframe: DataFrame
