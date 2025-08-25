@@ -27,7 +27,9 @@ Broker是代理方，负责执行指令。Broker有法律义务以最佳可能�
 
 #先开发  市价单 (Market Order)   限价单 (Limit Order)   止损单 (Stop Order)
 """
+import asyncio
 import enum
+import time
 
 from tickbutcher.ordermanage.order import Order
 
@@ -92,20 +94,58 @@ class OrderProcessStatusType(enum.Enum):
 
 class Broker():
   
-  def __init__(self,):
-    self.broker_name = None
+  def __init__(self):
+    self.broker_name = None   ## 经济商实例的名称
     self.trade_positions =[]
-    self.orders = []
+    self.orders = []    ## 接受的订单
+    # ordermanager 的回调函数
+    self.order_status_callback = None
 
+
+  # 由OrderManager调用，注册回调函数
+  def set_order_status_callback(self, callback_func):
+    self.order_status_callback = callback_func
+
+  async def submit_order(self, order: Order):
+    """ 提交订单到真实交易所/模拟引擎 """
+    # ... 内部逻辑 ...
+    # 当有状态变化时（如接受、成交、取消），调用回调函数通知OrderManager
+    # 例如：
+
+    ### 这个变化应该是交易所网络和撮合引擎执行并处理给出返回结果的
+    await self._simulate_order_acceptance(order)
+    await self._simulate_order_filled(order)
+
+    # await asyncio.sleep(0)
+
+  # 模拟经纪商接受订单
+  async def _simulate_order_acceptance(self, order: Order):
+
+    if self.order_status_callback:
+      # 这里模拟经纪商在另一个线程/事件循环中异步回调
+      await asyncio.sleep(2)
+      self.order_status_callback(order.id, OrderProcessStatusType.Accepted.value, 10)
+
+  # 模拟撮合引擎撮合完成订单
+  async def _simulate_order_filled(self,order: Order):
+    await asyncio.sleep(5)
+    self.order_status_callback(order.id, OrderProcessStatusType.Filled.value, 10)
+
+  """
+    在这里涉及到买入流程的设计，无论买卖都需要考虑仓位、手续费、账户内剩余金额信息
+    所以是先创建订单，
+    再提交订单给Broker 
+    Broker收到订单后先预先冻结保证金
+    然后Broker再把订单提交至市场 
+  """
 
   """
       在Order类中维护一个订单簿  OrderBooks，通过buy函数进行逐个order下单 
-    
   """
   ### 参数为订单簿中的单个订单    标的，数量，订单类型(市价单，限价单...)
   def buy(self, single_order : Order) :
-    ###
     pass
+
 
 
 
