@@ -17,6 +17,27 @@
       "request": "launch",
       "module": "unittest",
       "args": ["tests.test_candlefeed.CandlefeedUnitTest"]
+    },
+    {
+      "name": "[test] CandlefeedUnitTest.test_klines_for_timeframe",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_candlefeed.CandlefeedUnitTest.test_klines_for_timeframe"]
+    },
+    {
+      "name": "[test] PandasCandleFeedUnitTest.test_load_data",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_candlefeed.PandasCandleFeedUnitTest.test_load_data"]
+    },
+    {
+      "name": "[test] ContemplationerUnitTest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_contemplationer.ContemplationerUnitTest"]
     }
   ]
 }

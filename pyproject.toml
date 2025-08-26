@@ -11,6 +11,11 @@ dependencies = [
     "pandas (>=2.3.2,<3.0.0)"
 ]
 
+[project.optional-dependencies]
+sqlalchemy = ["sqlalchemy (>=2.0.43,<3.0.0)"]
+asyncsqlchemy = ["sqlalchemy[asyncio] (>=2.0.43,<3.0.0)"]
+
+
 [tool.poetry]
 packages = [{include = "tickbutcher", from = "src"}]
 
