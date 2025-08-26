@@ -1,26 +1,36 @@
 from datetime import datetime
 import unittest
 from datetime import datetime, timedelta, timezone as TimeZone
-from tickbutcher.candlefeed import TimeframeType
+from tests.dataset import get_sol_usdt_1s_and_1min
+from tickbutcher.candlefeed import CandleIndexer, TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import load_dataframe_from_sql, PandasCandleFeed
 from tickbutcher.products import AssetType, FinancialInstrument
 
 class CandlefeedUnitTest(unittest.TestCase):
   
-  def test_candle_feed_proxy(self):
-    # sol_df = pd.read_json(StringIO(sol.USDT_T_SOL), convert_dates=False).set_index('timestamp')
-    # btc_df = pd.read_json(StringIO(btc.USDT_T_BTC), convert_dates=False).set_index('timestamp')
-    # btc_usdt_ps = FinancialInstrument("BTC/USDT", id="BTCUSDTPS", type=AssetType.PerpetualSwap)
-    # sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOLUSDTPS", type=AssetType.PerpetualSwap)
-    # db = CandleFeedDB()
-    # commission = MakerTakerCommission(maker_rate=0.001, taker_rate=0.002)
-    # db.add_kline(kline=btc_df, financial_type=btc_usdt_ps, timeframe=TimeframeType.H1, commission=commission)
-    # db.add_kline(kline=sol_df, financial_type=sol_usdt_ps, timeframe=TimeframeType.H1, commission=commission)
-    # proxy = CandleFeedProxy(db=db).set_position(sol_df.index[1])
-
-    # a = proxy.BTCUSDTPS_h1[-1]
-    # self.assertEqual(a.name, 1704067200000)
-    pass  
+  def test_candle_indexer(self):
+    solusdt_1s, solusdt_1min= get_sol_usdt_1s_and_1min()
+    
+    sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOLUSDTPS", type=AssetType.PerpetualSwap)
+  
+    sol_candle_feed = PandasCandleFeed(financial_type=sol_usdt_ps, 
+                                       timeframe_level=TimeframeType.sec1,
+                                       dataframe=solusdt_1s)
+    sol_candle_feed.load_data(solusdt_1min, TimeframeType.min1)
+    
+    
+    indexs = sol_candle_feed.get_position_index_list()
+    
+    candle_indexer = CandleIndexer(position=indexs[0], table={sol_usdt_ps: sol_candle_feed})
+    
+    sec = candle_indexer.SOLUSDTPS_sec1[0]
+    
+    self.assertEqual(sec['volume'], solusdt_1s.loc[indexs[0], 'volume'])
+    self.assertEqual(sec['open'], solusdt_1s.loc[indexs[0], 'open'])
+    self.assertEqual(sec['high'], solusdt_1s.loc[indexs[0], 'high'])
+    self.assertEqual(sec['low'], solusdt_1s.loc[indexs[0], 'low'])
+    self.assertEqual(sec['close'], solusdt_1s.loc[indexs[0], 'close'])
+    
   
   def test_klines_for_timeframe(self):
     """测试添加的k线数据的有效性"""
@@ -75,7 +85,7 @@ class PandasCandleFeedUnitTest(unittest.TestCase):
     # 检查PandasCandleFeed 对象的初始化时间
     start_time = datetime.now()
     sol_candle_feed = PandasCandleFeed(financial_type=sol_usdt_ps, 
-                                       timeframe_level=TimeframeType.s1,
+                                       timeframe_level=TimeframeType.sec1,
                                        dataframe=sol_usdt_1s_dataframe)
     sol_candle_feed.load_data(sol_usdt_1m, TimeframeType.min1)
 
@@ -88,7 +98,7 @@ class PandasCandleFeedUnitTest(unittest.TestCase):
     print(f"First index time: {current_time.isoformat()}")
     
     #测试秒级数据是否匹配
-    sec = sol_candle_feed.s1(position=indexs[0])
+    sec = sol_candle_feed.sec1(position=indexs[0])
     self.assertEqual(sec['volume'] , sol_usdt_1s_dataframe.loc[indexs[0], 'volume'])
     self.assertEqual(sec['open'], sol_usdt_1s_dataframe.loc[indexs[0], 'open'])
     self.assertEqual(sec['high'], sol_usdt_1s_dataframe.loc[indexs[0], 'high'])
@@ -96,7 +106,7 @@ class PandasCandleFeedUnitTest(unittest.TestCase):
     self.assertEqual(sec['close'], sol_usdt_1s_dataframe.loc[indexs[0], 'close'])
 
     #测试秒级数据是否偏移是否正常
-    sec_offset = sol_candle_feed.s1(position=indexs[0], offset=1)
+    sec_offset = sol_candle_feed.sec1(position=indexs[0], offset=1)
     self.assertEqual(sec_offset['volume'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'volume'])
     self.assertEqual(sec_offset['open'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'open'])
     self.assertEqual(sec_offset['high'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'high'])

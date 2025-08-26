@@ -29,7 +29,7 @@ class ContemplationerUnitTest(unittest.TestCase):
     sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOLUSDTPS", type=AssetType.PerpetualSwap)
 
     sol_candle_feed = PandasCandleFeed(financial_type=sol_usdt_ps, 
-                                       timeframe_level=TimeframeType.s1,
+                                       timeframe_level=TimeframeType.sec1,
                                        dataframe=sol_usdt_1s_dataframe)
 
     
