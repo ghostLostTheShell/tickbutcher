@@ -1,6 +1,6 @@
 from datetime import datetime
 import unittest
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone as TimeZone
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import load_dataframe_from_sql, PandasCandleFeed
 from tickbutcher.products import AssetType, FinancialInstrument
@@ -55,7 +55,7 @@ class PandasCandleFeedUnitTest(unittest.TestCase):
   
   def test_load_data(self):
     """测试PandasCandleFeed的load_data方法"""
-    test_start_date = datetime.fromisoformat("2025-01-01T00:00:00+00:00:00")
+    test_start_date = datetime.fromisoformat("2025-01-02T00:00:00+00:00:00")
     end_start_date = datetime.fromisoformat("2025-01-10T00:00:00+00:00:00")
     
     
@@ -77,13 +77,14 @@ class PandasCandleFeedUnitTest(unittest.TestCase):
     sol_candle_feed = PandasCandleFeed(financial_type=sol_usdt_ps, 
                                        timeframe_level=TimeframeType.s1,
                                        dataframe=sol_usdt_1s_dataframe)
+    sol_candle_feed.load_data(sol_usdt_1m, TimeframeType.min1)
 
     end_time = datetime.now()
     print(f"PandasCandleFeed initialized in {end_time - start_time}")
 
 
     indexs = sol_candle_feed.get_position_index_list()
-    current_time = datetime.fromtimestamp(indexs[0]/1000, tz=ZoneInfo("UTC"))
+    current_time = datetime.fromtimestamp(indexs[0]/1000, tz=TimeZone(timedelta(hours=0)))
     print(f"First index time: {current_time.isoformat()}")
     
     #测试秒级数据是否匹配
@@ -94,8 +95,33 @@ class PandasCandleFeedUnitTest(unittest.TestCase):
     self.assertEqual(sec['low'], sol_usdt_1s_dataframe.loc[indexs[0], 'low'])
     self.assertEqual(sec['close'], sol_usdt_1s_dataframe.loc[indexs[0], 'close'])
 
+    #测试秒级数据是否偏移是否正常
+    sec_offset = sol_candle_feed.s1(position=indexs[0], offset=1)
+    self.assertEqual(sec_offset['volume'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'volume'])
+    self.assertEqual(sec_offset['open'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'open'])
+    self.assertEqual(sec_offset['high'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'high'])
+    self.assertEqual(sec_offset['low'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'low'])
+    self.assertEqual(sec_offset['close'], sol_usdt_1s_dataframe.loc[indexs[0] + 1000, 'close'])
+
     #测试分钟级数据是否匹配
-    #TODO
+    min1 = sol_candle_feed.min1(position=indexs[0])
+    self.assertEqual(min1['volume'], sol_usdt_1s_dataframe.loc[indexs[0], 'volume'])
+    self.assertEqual(min1['open'], sol_usdt_1s_dataframe.loc[indexs[0], 'open'])
+    self.assertEqual(min1['high'], sol_usdt_1s_dataframe.loc[indexs[0], 'high'])
+    self.assertEqual(min1['low'], sol_usdt_1s_dataframe.loc[indexs[0], 'low'])
+    self.assertEqual(min1['close'], sol_usdt_1s_dataframe.loc[indexs[0], 'close'])
+    
+    min1_sec05 = sol_candle_feed.min1(position=indexs[5])
+    
+    self.assertEqual(min1_sec05['volume'], sol_usdt_1s_dataframe.loc[indexs[0]:indexs[5], "volume"].sum())
+    self.assertEqual(min1_sec05['open'], sol_usdt_1s_dataframe.loc[indexs[0], "open"])
+    self.assertEqual(min1_sec05['high'], sol_usdt_1s_dataframe.loc[indexs[0]:indexs[5], "high"].max())
+    self.assertEqual(min1_sec05['low'], sol_usdt_1s_dataframe.loc[indexs[0]:indexs[5], "low"].min())
+    self.assertEqual(min1_sec05['close'], sol_usdt_1s_dataframe.loc[indexs[5], "close"])
+    
+    #测试分钟数据是否偏移是否正常
+    
+    
 
     pass
     

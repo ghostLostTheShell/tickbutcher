@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from zoneinfo import ZoneInfo
 from tickbutcher.candlefeed import TimeframeType
 from pandas import DataFrame
@@ -94,14 +95,18 @@ class PandasCandleFeed(CandleFeed):
 
     return dataframe.index
 
-  def s1(self, position):
+  def s1(self, position, *, offset:Optional[int]=0):
     if self.timeframe_s1 is None:
       raise ValueError("No s1 timeframe data available")
     if self.timeframe_level.value > TimeframeType.s1.value:
       raise ValueError(f"Current timeframe level {self.timeframe_level} is higher than s1")
-    return self.timeframe_s1.loc[position]
+    
+    if offset == 0:
+      return self.timeframe_s1.loc[position]
+    else:
+      return self.timeframe_s1.loc[position + (offset*1000)]
 
-  def min1(self, position, *, calc_enable=False):
+  def min1(self, position, *, offset:Optional[int]=0):
     """ 获取1分钟时间框架的k线
 
     Args:
@@ -119,8 +124,8 @@ class PandasCandleFeed(CandleFeed):
       raise ValueError("No min1 timeframe data available")
 
     if self.timeframe_level is TimeframeType.s1:
-      if calc_enable:
-        sec = position % 6000
+      if offset == 0:
+        sec = position % 60000
         if sec == 0:
           return self.s1(position)
         else:
@@ -137,32 +142,36 @@ class PandasCandleFeed(CandleFeed):
               "close": close,
               "open": open
           })
+      else:
+        position = position + self.timezone_offset + (offset * 1000)
+        return self.timeframe_min1.loc[position]
 
     return self.timeframe_min1.loc[position]
 
-  def min5(self, position):
+  def min5(self, position, offset:Optional[int]=0):
+    
     raise NotImplementedError("min5 aggregation from s1 not implemented yet")
 
-  def min15(self, position):
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+  def min15(self, position, offset:Optional[int]=0):
+    raise NotImplementedError("min15 aggregation from s1 not implemented yet")
 
-  def h1(self, position):
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+  def h1(self, position, offset:Optional[int]=0):
+    raise NotImplementedError("h1 aggregation from s1 not implemented yet")
 
-  def h4(self, position):
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+  def h4(self, position, offset:Optional[int]=0):
+    raise NotImplementedError("h4 aggregation from s1 not implemented yet")
 
-  def d1(self):
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+  def d1(self, position, offset:Optional[int]=0):
+    raise NotImplementedError("d1 aggregation from s1 not implemented yet")
 
-  def w1(self):
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+  def w1(self, position, offset:Optional[int]=0):
+    raise NotImplementedError("w1 aggregation from s1 not implemented yet")
 
-  def mo1(self):
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+  def mo1(self, position, offset:Optional[int]=0):
+    raise NotImplementedError("mo1 aggregation from s1 not implemented yet")
 
-  def y1(self):
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+  def y1(self, position, offset:Optional[int]=0):
+    raise NotImplementedError("y1 aggregation from s1 not implemented yet")
 
 def load_dataframe_from_sql(*, 
                             inst_id:str, 

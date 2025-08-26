@@ -3,16 +3,17 @@ from tickbutcher.contemplationer import Contemplationer
 
 class Strategy():
   
-  def __init__(self, broker:Broker, contemplationer:Contemplationer):
+  def __init__(self, broker:Broker):
     self.broker = broker
-    self.contemplationer = contemplationer
   
   def next(self):
-    pass
+    self.candled
 
 
-  def data(self):
-    return self.contemplationer.candle_feed_proxy
+  @property
+  def candled(self):
+    return self
+
 
   def close_trade(self):
     self.broker.close_trade()

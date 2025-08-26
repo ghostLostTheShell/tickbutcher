@@ -1,20 +1,29 @@
-from typing import List
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone as TimeZone
+from typing import List, Optional
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.products import FinancialInstrument
 
 class CandleFeed():
-  timezone:ZoneInfo
+  timezone:TimeZone
   financial_type:FinancialInstrument
   timeframe_level: TimeframeType
-
+  timezone_offset:int
+  
   def __init__(self, *, 
                financial_type:FinancialInstrument,
                timeframe_level:TimeframeType,
-               timezone:ZoneInfo=None):
+               timezone:TimeZone=None):
     self.financial_type = financial_type
     self.timeframe_level = timeframe_level
-    self.timezone = timezone or ZoneInfo("UTC")
+    
+    if timezone is None:
+      self.timezone_offset = 0
+      self.timezone = TimeZone(timedelta(0))
+    elif timezone is not None:
+      offset = datetime.now(timezone).utcoffset()
+      self.timezone_offset = offset.total_seconds() * 1000
+      self.timezone = timezone
+      
     self.timeframe_level = timeframe_level
 
 
@@ -26,7 +35,7 @@ class CandleFeed():
   # 时间框架数据  
   def s1(self):
     pass
-  def min1(self, *, calc_enable=False):
+  def min1(self, *, offset:Optional[int]=0):
     pass
   def min5(self):
     pass

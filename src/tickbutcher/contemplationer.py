@@ -8,11 +8,13 @@ from typing import Dict, List, TYPE_CHECKING
 if TYPE_CHECKING:
   from tickbutcher.brokers import Broker
   from tickbutcher.strategys import Strategy
+  
+
 class Contemplationer:
   broker:'Broker'
   strategys: List['Strategy']
   candle_list: List[CandleFeed]
-  financial_type_candle__tble: Dict[FinancialInstrument, CandleFeed]
+  financial_type_candle__table: Dict[FinancialInstrument, CandleFeed]
   current_time: int
 
   def __init__(self):
@@ -47,3 +49,7 @@ class Contemplationer:
         strategy.next()
 
       print(f"Current time: {datetime.fromtimestamp(current_time/1000, tz=ZoneInfo('UTC'))}")
+
+  @property
+  def candle(self):
+    return self.candle_list[0] if self.candle_list else None
