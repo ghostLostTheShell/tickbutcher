@@ -29,7 +29,7 @@ class PandasCandleFeed(CandleFeed):
     
     super().__init__(financial_type=financial_type, timeframe_level=timeframe_level, timezone=timezone)
     
-    if timeframe_level is  TimeframeType.s1:
+    if timeframe_level is  TimeframeType.sec1:
       ## 检查index的步进是否为1秒
       first100_idx = dataframe.index[:100]
       if not (pd.Series(first100_idx).diff().dropna() == 1000).all():
@@ -42,7 +42,7 @@ class PandasCandleFeed(CandleFeed):
     self.load_data(dataframe, timeframe_level)
 
   def load_data(self, data:DataFrame, timeframe:TimeframeType):
-    if timeframe == TimeframeType.s1:
+    if timeframe == TimeframeType.sec1:
       self.timeframe_s1 = data
     elif timeframe == TimeframeType.min1:
       self.timeframe_min1 = data
@@ -67,7 +67,7 @@ class PandasCandleFeed(CandleFeed):
 
   def get_position_index_list(self):
     dataframe = None
-    if self.timeframe_level == TimeframeType.s1:
+    if self.timeframe_level == TimeframeType.sec1:
       dataframe = self.timeframe_s1
     elif self.timeframe_level == TimeframeType.min1:
       dataframe = self.timeframe_min1
@@ -95,11 +95,11 @@ class PandasCandleFeed(CandleFeed):
 
     return dataframe.index
 
-  def s1(self, position, *, offset:Optional[int]=0):
+  def sec1(self, position, *, offset:Optional[int]=0):
     if self.timeframe_s1 is None:
-      raise ValueError("No s1 timeframe data available")
-    if self.timeframe_level.value > TimeframeType.s1.value:
-      raise ValueError(f"Current timeframe level {self.timeframe_level} is higher than s1")
+      raise ValueError("No sec1 timeframe data available")
+    if self.timeframe_level.value > TimeframeType.sec1.value:
+      raise ValueError(f"Current timeframe level {self.timeframe_level} is higher than sec1")
     
     if offset == 0:
       return self.timeframe_s1.loc[position]
@@ -123,11 +123,11 @@ class PandasCandleFeed(CandleFeed):
     if self.timeframe_min1 is None:
       raise ValueError("No min1 timeframe data available")
 
-    if self.timeframe_level is TimeframeType.s1:
+    if self.timeframe_level is TimeframeType.sec1:
       if offset == 0:
         sec = position % 60000
         if sec == 0:
-          return self.s1(position)
+          return self.sec1(position)
         else:
           start_index = position - sec
           sum_volume = self.timeframe_s1.loc[start_index:position, "volume"].sum()
@@ -150,28 +150,28 @@ class PandasCandleFeed(CandleFeed):
 
   def min5(self, position, offset:Optional[int]=0):
     
-    raise NotImplementedError("min5 aggregation from s1 not implemented yet")
+    raise NotImplementedError("min5 aggregation from sec1 not implemented yet")
 
   def min15(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("min15 aggregation from s1 not implemented yet")
+    raise NotImplementedError("min15 aggregation from sec1 not implemented yet")
 
   def h1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("h1 aggregation from s1 not implemented yet")
+    raise NotImplementedError("h1 aggregation from sec1 not implemented yet")
 
   def h4(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("h4 aggregation from s1 not implemented yet")
+    raise NotImplementedError("h4 aggregation from sec1 not implemented yet")
 
   def d1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("d1 aggregation from s1 not implemented yet")
+    raise NotImplementedError("d1 aggregation from sec1 not implemented yet")
 
   def w1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("w1 aggregation from s1 not implemented yet")
+    raise NotImplementedError("w1 aggregation from sec1 not implemented yet")
 
   def mo1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("mo1 aggregation from s1 not implemented yet")
+    raise NotImplementedError("mo1 aggregation from sec1 not implemented yet")
 
   def y1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("y1 aggregation from s1 not implemented yet")
+    raise NotImplementedError("y1 aggregation from sec1 not implemented yet")
 
 def load_dataframe_from_sql(*, 
                             inst_id:str, 

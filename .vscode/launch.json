@@ -32,6 +32,13 @@
       "module": "unittest",
       "args": ["tests.test_candlefeed.PandasCandleFeedUnitTest.test_load_data"]
     },
+        {
+      "name": "[test] CandlefeedUnitTest.test_candle_indexer",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_candlefeed.CandlefeedUnitTest.test_candle_indexer"]
+    },
     {
       "name": "[test] ContemplationerUnitTest",
       "type": "debugpy",

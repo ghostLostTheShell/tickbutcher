@@ -33,7 +33,7 @@ class CandleFeed():
     pass
 
   # 时间框架数据  
-  def s1(self):
+  def sec1(self):
     pass
   def min1(self, *, offset:Optional[int]=0):
     pass
