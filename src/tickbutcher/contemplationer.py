@@ -1,24 +1,49 @@
 from datetime import datetime
-from tickbutcher.candlefeed import CandleFeedDB, CandleFeedProxy, TimeframeType
-from tickbutcher.commission import Commission
+from zoneinfo import ZoneInfo
+
+from tickbutcher.candlefeed import CandleFeed
 from tickbutcher.products import FinancialInstrument
-from pandas import DataFrame
-
-
+from typing import Dict, List, TYPE_CHECKING
+# 避免循环导入
+if TYPE_CHECKING:
+  from tickbutcher.brokers import Broker
+  from tickbutcher.strategys import Strategy
 class Contemplationer:
-  
-  
+  broker:'Broker'
+  strategys: List['Strategy']
+  candle_list: List[CandleFeed]
+  financial_type_candle__tble: Dict[FinancialInstrument, CandleFeed]
+  current_time: int
+
   def __init__(self):
-    self.candle_feed_db = CandleFeedDB()
-    self.candle_feed_proxy=CandleFeedProxy(self.candle_feed_db)
+    self.strategys = []
+    self.candle_list = []
+    self.financial_type_candle__tble = {}
 
-  def add_kline(self, *, kline:DataFrame, financial_type:FinancialInstrument, timeframe:TimeframeType, commission:Commission):
-    self.candle_feed_db.add_kline(kline=kline, financial_type=financial_type, timeframe=timeframe, commission=commission)
+  def set_broker(self, broker: 'Broker'):
+    self.broker = broker
+    broker.set_contemplationer(self)
 
+  def set_current_time(self, current_time: int):
+    self.current_time = current_time
+
+  def add_kline(self, *, candleFeed:CandleFeed):
+    self.candle_list.append(candleFeed)
+    self.financial_type_candle__tble[candleFeed.financial_type] = candleFeed
+
+  def get_time_interval(self):
+    if len(self.candle_list) == 0:
+      raise ValueError("No candle feed available")
+    return self.candle_list[0].get_position_index_list()
 
   def run(self):
-    self.time_interval = self.candle_feed_db.get_time_intervals()
+    time_interval = self.get_time_interval()
 
-    for current_time in self.time_interval:
-      self.candle_feed_proxy.set_position(current_time)
-      print(f"Current time: {datetime.fromtimestamp(current_time/1000)}")
+    for current_time in time_interval:
+      self.set_current_time(current_time)
+      self.broker.next()
+      
+      for strategy in self.strategys:
+        strategy.next()
+
+      print(f"Current time: {datetime.fromtimestamp(current_time/1000, tz=ZoneInfo('UTC'))}")

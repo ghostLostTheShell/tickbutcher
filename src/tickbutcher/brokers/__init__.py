@@ -1,3 +1,6 @@
+from typing import Dict, List, TYPE_CHECKING
+from tickbutcher.commission import Commission
+from tickbutcher.products import AssetType
 
 ### broker 中间商
 
@@ -90,10 +93,19 @@ class OrderProcessStatusType(enum.Enum):
 
 
 
+# 在运行时这个导入不会被执行，从而避免循环导入
+if TYPE_CHECKING:
+    from tickbutcher.contemplationer import Contemplationer
 
 
 class Broker():
-  
+  broker_name:str
+  trade_positions:List
+  orders:List
+  contemplationer:'Contemplationer'
+  commission_table:Dict[AssetType, Commission]
+
+
   def __init__(self):
     self.broker_name = None   ## 经济商实例的名称
     self.trade_positions =[]
@@ -144,6 +156,19 @@ class Broker():
   """
   ### 参数为订单簿中的单个订单    标的，数量，订单类型(市价单，限价单...)
   def buy(self, single_order : Order) :
+    self.orders = []
+    self.commission_table = {}
+
+  def set_contemplationer(self, contemplationer: 'Contemplationer'):
+    self.contemplationer = contemplationer
+
+  def set_commission(self, asset_type: AssetType, commission: Commission):
+    self.commission_table[asset_type] = commission
+    
+  def get_commission(self, asset_type: AssetType) -> Commission:
+    return self.commission_table[asset_type]
+
+  def buy(self):
     pass
 
 
@@ -155,4 +180,7 @@ class Broker():
 
   def close_trade(self, trade_position):
     """平仓"""
+    pass
+
+  def next(self):
     pass
