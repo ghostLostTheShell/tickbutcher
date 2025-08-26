@@ -24,3 +24,15 @@ class OrderUnitTest(unittest.TestCase):
         print(new_order2.status)
         print(new_order2.timestamp)
 
+
+
+        # 状态判断
+        self.assertEqual(True, new_order.is_created())
+
+        # self.assertEqual(True, new_order.is_padding())
+        #
+        # self.assertEqual(True, new_order.is_fill())
+        #
+        # self.assertEqual(True, new_order.is_active())
+        #
+        # self.assertEqual(True, new_order.is_done())

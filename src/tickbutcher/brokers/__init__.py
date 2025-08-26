@@ -1,6 +1,3 @@
-from typing import Dict, List, TYPE_CHECKING
-from tickbutcher.commission import Commission
-from tickbutcher.products import AssetType
 
 ### broker 中间商
 
@@ -34,7 +31,11 @@ import asyncio
 import enum
 import time
 
-from tickbutcher.ordermanage.order import Order
+from tickbutcher.ordermanage.order import Order,OrderSide
+from typing import Dict, List, TYPE_CHECKING
+from tickbutcher.commission import Commission
+from tickbutcher.products import AssetType
+
 
 ### 维护一个订单状态的 Enum
 """
@@ -75,20 +76,19 @@ G --> M
 L --> M
 """
 
+"""订单状态类型 （包含准备 and 市商返回类型）"""
 class OrderProcessStatusType(enum.Enum):
-  Created = '0'       ### 已创建 (Created)
-  Submitted = "1"   ### 已提交 (Submitted)
-  Padding = "2"  ### 等待订单撮合 (Padding)
-  Accepted = "3" ### 已接受 (Accepted)
-  PartiallyFilled = "4"   ### 部分成交 (Partially Filled)
-  Filled = "5"   ### 完全成交 (Filled)
-  Cancelled = "6"   ### 已取消 (Cancelled)
-  Rejected = "7"   ### 拒绝 (Rejected)
-  Completed = "8"   ### 已完成 (Completed)
-  Expired = "9"  ### 已失效 (Expired)
-  Margin = "10"  ### 保证金不足 （Margin）
-
-
+  Created = 0       ### 已创建 (Created)
+  Submitted = 1   ### 已提交 (Submitted)
+  Padding = 2  ### 等待订单撮合 (Padding)
+  Accepted = 3 ### 已接受 (Accepted) 预先扣除保证金
+  PartiallyFilled = 4   ### 部分成交 (Partially Filled)
+  Filled = 5   ### 完全成交 (Filled)
+  Cancelled = 6   ### 已取消 (Cancelled)
+  Rejected = 7   ### 拒绝 (Rejected)
+  Completed = 8   ### 已完成 (Completed) 订单全部完成
+  Expired = 9  ### 已失效 (Expired)
+  Margin = 10  ### 保证金不足 （Margin）
 
 
 
@@ -106,7 +106,7 @@ class Broker():
   commission_table:Dict[AssetType, Commission]
 
 
-  def __init__(self):
+  def __init__(self,name: str):
     self.broker_name = None   ## 经济商实例的名称
     self.trade_positions =[]
     self.orders = []    ## 接受的订单
@@ -123,24 +123,38 @@ class Broker():
     # ... 内部逻辑 ...
     # 当有状态变化时（如接受、成交、取消），调用回调函数通知OrderManager
     # 例如：
-
     ### 这个变化应该是交易所网络和撮合引擎执行并处理给出返回结果的
-    await self._simulate_order_acceptance(order)
-    await self._simulate_order_filled(order)
+    if order.side == OrderSide.Buy.value:
+      await self.buy(order)
+    if order.side == OrderSide.Sell.value:
+      await self.sell(order)
+    if order.side == OrderSide.Close.value:
+      await self.close_trade(order)
 
-    # await asyncio.sleep(0)
 
   # 模拟经纪商接受订单
   async def _simulate_order_acceptance(self, order: Order):
 
     if self.order_status_callback:
       # 这里模拟经纪商在另一个线程/事件循环中异步回调
-      await asyncio.sleep(2)
-      self.order_status_callback(order.id, OrderProcessStatusType.Accepted.value, 10)
+      await asyncio.sleep(1)
+      self.order_status_callback(order.id, OrderProcessStatusType.Accepted.value, 0)
+
+  async def _simulate_order_padding(self, order: Order):
+    if self.order_status_callback:
+      # 这里模拟经纪商在另一个线程/事件循环中异步回调
+      await asyncio.sleep(1)
+      self.order_status_callback(order.id, OrderProcessStatusType.Padding.value, 0)
+
+  # 模拟撮合引擎撮合部分完成订单
+  async def _simulate_order_partially_filled(self,order: Order):
+    await asyncio.sleep(1)
+    self.order_status_callback(order.id, OrderProcessStatusType.PartiallyFilled.value, 5)
+
 
   # 模拟撮合引擎撮合完成订单
   async def _simulate_order_filled(self,order: Order):
-    await asyncio.sleep(5)
+    await asyncio.sleep(1)
     self.order_status_callback(order.id, OrderProcessStatusType.Filled.value, 10)
 
   """
@@ -151,13 +165,43 @@ class Broker():
     然后Broker再把订单提交至市场 
   """
 
-  """
-      在Order类中维护一个订单簿  OrderBooks，通过buy函数进行逐个order下单 
-  """
   ### 参数为订单簿中的单个订单    标的，数量，订单类型(市价单，限价单...)
-  def buy(self, single_order : Order) :
+  async def buy(self, single_order : Order) :
     self.orders = []
     self.commission_table = {}
+    print('订单方向Buy',single_order.side)
+    # 接收
+    await self._simulate_order_acceptance(single_order)
+    print('Buy订单流程状态1', single_order.status)
+    # 等待
+    await self._simulate_order_padding(single_order)
+    print('Buy订单流程状态2', single_order.status)
+    # 下单
+    await self._simulate_order_filled(single_order)
+    print('Buy订单流程状态3', single_order.status)
+
+    # 执行完成
+
+  async def sell(self, single_order : Order):
+    print(single_order.side)
+    # 接收
+    await self._simulate_order_acceptance(single_order)
+    print('Sell订单流程状态1 ', single_order.status)
+    # 等待
+    await self._simulate_order_padding(single_order)
+    print('Sell订单流程状态2', single_order.status)
+
+    # 下单
+    await self._simulate_order_filled(single_order)
+    print('Sell订单流程状态3', single_order.status)
+
+    # 执行完成
+
+  def close_trade(self, trade_position):
+    """平仓"""
+    pass
+
+
 
   def set_contemplationer(self, contemplationer: 'Contemplationer'):
     self.contemplationer = contemplationer
@@ -167,20 +211,6 @@ class Broker():
     
   def get_commission(self, asset_type: AssetType) -> Commission:
     return self.commission_table[asset_type]
-
-  def buy(self):
-    pass
-
-
-
-
-
-  def sell(self):
-    pass
-
-  def close_trade(self, trade_position):
-    """平仓"""
-    pass
 
   def next(self):
     pass

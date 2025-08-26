@@ -32,7 +32,7 @@ class OrderManager:
         # 向经纪商注册回调函数，这样经纪商有任何更新都会通知到OrderManager
         self.broker.set_order_status_callback(self.on_order_status_update)
 
-    def place_order(self, new_order: Order):
+    def submit_order(self, new_order: Order):
         """ 接收来自策略的订单请求 """
         # 1. 创建订单对象
 
@@ -58,8 +58,8 @@ class OrderManager:
         old_status = order.status
         order.status = new_status  # 修改order实例状态
         order.filled_quantity = filled_quantity #修改order实例内挂单成交数量
-
-
+        order.remaining_quantity = order.quantity - order.filled_quantity # 计算未挂单单量
+        order.quantity = order.remaining_quantity # 修改订单数量为未挂单数量
 
         if new_status == OrderProcessStatusType.PartiallyFilled:
             self._handle_partial_fill(order)
@@ -78,30 +78,30 @@ class OrderManager:
             self._clean_up_order(order)
 
 
-
-
     def _handle_partial_fill(self, order: Order):
         """ 处理部分成交 """
         # 1. 更新本地持仓和资金计算（释放部分预冻结保证金？）
         # 2. 检查是否需要自动创建新订单来补足剩余数量？
         #    例如：策略希望无论如何都要完全成交，可以在这里触发一个新的限价单/市价单
-        remaining_qty = order.quantity - order.filled_quantity
+        remaining_quantity = order.quantity - order.filled_quantity
         # if self.strategy.continue_on_partial_fill: # 示例逻辑
         #     new_order_request = ... # 创建新的订单请求，数量为remaining_qty
         #     self.place_order(new_order_request)
-        print(f"Order {order.order_id} partially filled. Filled: {order.filled_quantity}, Remaining: {remaining_qty}")
+        print(f"Order {order.order_id} partially filled. Filled: {order.filled_quantity}, Remaining: {remaining_quantity}")
 
     def _handle_fill(self, order: Order):
         """ 处理完全成交 """
         # 更新投资组合：正式占用保证金，增加持仓
+        order.filled_quantity = order.quantity
+        order.quantity = 0
         print(f"Order {order.order_id} fully filled.")
 
     def _handle_partial_cancel(self, order: Order):
         """ 处理部分成交后的取消 """
         # 处理部分成交后剩下的部分被取消的逻辑
-        remaining_qty = order.quantity - order.filled_quantity
+        remaining_quantity = order.quantity - order.filled_quantity
         # 释放剩余数量的预冻结保证金
-        print(f"Order {order.id} partially cancelled. {remaining_qty} units cancelled after partial fill.")
+        print(f"Order {order.id} partially cancelled. {remaining_quantity} units cancelled after partial fill.")
 
     def _clean_up_order(self, order : Order):
         """ 订单终结处理 """

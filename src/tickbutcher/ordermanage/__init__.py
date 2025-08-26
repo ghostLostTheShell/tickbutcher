@@ -3,8 +3,8 @@ import enum
 
 """订单操作类型"""
 class OrderOptionType(enum.Enum):
-  MarketOrder = 1
-  LimitOrder = 2
+  MarketOrder = 1  # 市价单
+  LimitOrder = 2 # 限价单
   StopOrder = 3
   StopLimitOrder = 4
   TrailingStopOrder = 5
@@ -29,3 +29,8 @@ class OrderProcessStatusType(enum.Enum):
   Expired = 9  ### 已失效 (Expired)
   Margin = 10  ### 保证金不足 （Margin）
 
+'''操作方向'''
+class OrderSide(enum.Enum):
+  Buy = 0
+  Sell = 1
+  Close = 2
