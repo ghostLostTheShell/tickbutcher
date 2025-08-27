@@ -1,19 +1,33 @@
+from abc import ABC, abstractmethod
 from tickbutcher.brokers import Broker
-from tickbutcher.contemplationer import Contemplationer
 
-class Strategy():
-  
-  def __init__(self, broker:Broker):
-    self.broker = broker
+class Strategy(ABC):
+    
+  @abstractmethod
+  def next(self):
+    pass
+
+  @abstractmethod
+  def set_broker(self, broker:Broker):
+    pass
+
+
+    
+
+class CommonStrategy(Strategy):
+
+  broker:Broker
   
   def next(self):
-    self.candled
+    pass
 
-
+  def set_broker(self, broker: Broker):
+    self.broker = broker
+    
+  
   @property
   def candled(self):
-    return self
-
+    return self.broker.contemplationer.candle
 
   def close_trade(self):
     self.broker.close_trade()
@@ -23,5 +37,3 @@ class Strategy():
     
   def sell(self):
     self.broker.sell()
-    
-    

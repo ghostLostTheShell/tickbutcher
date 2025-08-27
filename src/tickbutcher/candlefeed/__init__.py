@@ -21,7 +21,7 @@ class TimeframeType(enum.Enum):
 
 from .candlefeed import CandleFeed
 
-__all__ = ['CandleFeed', 'TimeframeType']
+
 
 class CandleIndexer:
     position: int
@@ -77,3 +77,4 @@ class CandleIndexer:
           return  getattr(self.candlefeed, self.timeframe.name)(self.position, offset=row_indexer)
           
 
+__all__ = ['CandleFeed', 'TimeframeType', 'CandleIndexer']
