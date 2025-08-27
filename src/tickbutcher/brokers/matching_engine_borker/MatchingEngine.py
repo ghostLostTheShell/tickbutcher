@@ -2,8 +2,7 @@
 import heapq
 from typing import List, Dict
 
-from tickbutcher.ordermanage import OrderSide, OrderOptionType,OrderProcessStatusType
-from tickbutcher.ordermanage.order import Order
+from tickbutcher.order import Order, OrderSide, OrderOptionType,OrderProcessStatusType
 
 
 class MatchingEngine:

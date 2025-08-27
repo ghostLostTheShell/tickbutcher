@@ -11,13 +11,9 @@ OrderManager 作为策略和经纪商之间的中间人，负责：
 建立一个事件驱动的系统，让Broker主动通知，由订单管理器来智能响应。
 Broker和市商交易完成后，将调用订单管理方法将订单数据传给这个类，然后再去修改对应的订单状态信息。
 """
-import asyncio
-from tokenize import String
-from typing import Dict
 
 from tickbutcher.brokers import Broker
-from tickbutcher.ordermanage import OrderProcessStatusType
-from tickbutcher.ordermanage.order import Order
+from tickbutcher.order import Order, OrderProcessStatusType
 
 
 class OrderManager:
@@ -42,7 +38,7 @@ class OrderManager:
         # 2. 通过经纪商提交订单
         try:
             new_order.status = OrderProcessStatusType.Submitted.value
-            asyncio.run(self.broker.submit_order(new_order))
+            # asyncio.run(self.broker.submit_order(new_order))
         except Exception as e:
             new_order.status = OrderProcessStatusType.Rejected.value
             # 通知策略...
