@@ -32,7 +32,7 @@ from typing import Dict, List
 from tickbutcher.brokers import Broker
 from tickbutcher.commission import Commission
 from tickbutcher.contemplationer import Contemplationer
-from tickbutcher.order import Order, OrderProcessStatusType, OrderSide
+from tickbutcher.order import Order, OrderStatus, OrderSide
 from tickbutcher.products import AssetType
 
 
@@ -76,21 +76,21 @@ class MatchingEngineBroker(Broker):
 
     if self.order_status_callback:
       # 这里模拟经纪商在另一个线程/事件循环中异步回调
-      self.order_status_callback(order.id, OrderProcessStatusType.Accepted.value, 0)
+      self.order_status_callback(order.id, OrderStatus.Accepted.value, 0)
 
   async def _simulate_order_padding(self, order: Order):
     if self.order_status_callback:
       # 这里模拟经纪商在另一个线程/事件循环中异步回调
-      self.order_status_callback(order.id, OrderProcessStatusType.Padding.value, 0)
+      self.order_status_callback(order.id, OrderStatus.Padding.value, 0)
 
   # 模拟撮合引擎撮合部分完成订单
   async def _simulate_order_partially_filled(self,order: Order):
-    self.order_status_callback(order.id, OrderProcessStatusType.PartiallyFilled.value, 5)
+    self.order_status_callback(order.id, OrderStatus.PartiallyFilled.value, 5)
 
 
   # 模拟撮合引擎撮合完成订单
   async def _simulate_order_filled(self,order: Order):
-    self.order_status_callback(order.id, OrderProcessStatusType.Filled.value, 10)
+    self.order_status_callback(order.id, OrderStatus.Filled.value, 10)
 
   """
     在这里涉及到买入流程的设计，无论买卖都需要考虑仓位、手续费、账户内剩余金额信息

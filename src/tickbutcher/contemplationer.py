@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from tickbutcher.candlefeed import CandleFeed, CandleIndexer
+from tickbutcher.candlefeed import CandleFeed, CandleIndexer, TimeframeType
 from tickbutcher.log import logger
 from tickbutcher.products import FinancialInstrument
 from typing import Dict, List, TYPE_CHECKING, Type, TypeVar, ParamSpec
@@ -20,11 +20,13 @@ class Contemplationer:
   candle_list: List[CandleFeed]
   financial_type_candle_table: Dict[FinancialInstrument, CandleFeed]
   current_time: int
-
-  def __init__(self):
+  timeframe_level:TimeframeType
+  
+  def __init__(self, *, timeframe_level:TimeframeType):
+    self.timeframe_level = timeframe_level
     self.strategys = []
     self.candle_list = []
-    self.financial_type_candle__tble = {}
+    self.financial_type_candle_table = {}
 
   def set_broker(self, broker: 'Broker'):
     self.broker = broker
@@ -38,8 +40,10 @@ class Contemplationer:
     self.strategys.append(new_strategy)
 
   def add_kline(self, *, candleFeed:CandleFeed):
+    if candleFeed.timeframe_level != self.timeframe_level:
+      raise ValueError(f"CandleFeed timeframe {candleFeed.timeframe_level} does not match Contemplationer timeframe {self.timeframe_level}")
     self.candle_list.append(candleFeed)
-    self.financial_type_candle__tble[candleFeed.financial_type] = candleFeed
+    self.financial_type_candle_table[candleFeed.financial_type] = candleFeed
 
   def get_time_interval(self):
     if len(self.candle_list) == 0:
@@ -66,4 +70,4 @@ class Contemplationer:
 
   @property
   def candle(self):
-    return CandleIndexer(self.current_time, self.financial_type_candle_table)
+    return CandleIndexer(self.current_time, self.financial_type_candle_table, self.timeframe_level)

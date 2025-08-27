@@ -13,7 +13,7 @@ Broker和市商交易完成后，将调用订单管理方法将订单数据传�
 """
 
 from tickbutcher.brokers import Broker
-from tickbutcher.order import Order, OrderProcessStatusType
+from tickbutcher.order import Order, OrderStatus
 
 
 class OrderManager:
@@ -37,15 +37,15 @@ class OrderManager:
 
         # 2. 通过经纪商提交订单
         try:
-            new_order.status = OrderProcessStatusType.Submitted.value
+            new_order.status = OrderStatus.Submitted.value
             # asyncio.run(self.broker.submit_order(new_order))
         except Exception as e:
-            new_order.status = OrderProcessStatusType.Rejected.value
+            new_order.status = OrderStatus.Rejected.value
             # 通知策略...
 
 
     # order_id   订单ID, new_status 更新后订单状态, filled_quantity 订单完成数量
-    def on_order_status_update(self, order_id, new_status : OrderProcessStatusType, filled_quantity, **kwargs):
+    def on_order_status_update(self, order_id, new_status : OrderStatus, filled_quantity, **kwargs):
         order = self.open_orders.get(order_id)
         if not order:
             print("找不到对应订单ID为：", order_id, " 的订单")
@@ -57,16 +57,16 @@ class OrderManager:
         order.remaining_quantity = order.quantity - order.filled_quantity # 计算未挂单单量
         order.quantity = order.remaining_quantity # 修改订单数量为未挂单数量
 
-        if new_status == OrderProcessStatusType.PartiallyFilled:
+        if new_status == OrderStatus.PartiallyFilled:
             self._handle_partial_fill(order)
 
-        elif new_status == OrderProcessStatusType.Filled:
+        elif new_status == OrderStatus.Filled:
             self._handle_fill(order)
             self._clean_up_order(order)   # 从open_orders订单簿中移除
 
-        elif new_status == OrderProcessStatusType.Cancelled:
+        elif new_status == OrderStatus.Cancelled:
             # 如果订单的旧状态为部分成交
-            if old_status == OrderProcessStatusType.PartiallyFilled:
+            if old_status == OrderStatus.PartiallyFilled:
                 self._handle_partial_cancel(order)
             self._clean_up_order(order)
 
@@ -104,7 +104,7 @@ class OrderManager:
         if order.is_done():
             self.open_orders.pop(order.id, None)
 
-    def _notify_strategy(self, order : Order, old_status : OrderProcessStatusType, new_status : OrderProcessStatusType):
+    def _notify_strategy(self, order : Order, old_status : OrderStatus, new_status : OrderStatus):
         # 这里可以通过回调函数、消息队列、事件总线等方式通知策略
         # 例如：self.strategy.on_order_event(order, old_status, new_status)
         print(f"Order {order.id} updated: {old_status} -> {new_status}")

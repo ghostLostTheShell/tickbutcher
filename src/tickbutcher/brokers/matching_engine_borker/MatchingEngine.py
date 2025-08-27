@@ -2,7 +2,7 @@
 import heapq
 from typing import List, Dict
 
-from tickbutcher.order import Order, OrderSide, OrderOptionType,OrderProcessStatusType
+from tickbutcher.order import Order, OrderSide, OrderType,OrderStatus
 
 
 class MatchingEngine:
@@ -26,13 +26,13 @@ class MatchingEngine:
             # 处理买单：尝试与卖盘订单匹配
             trades = self._match_buy_order()
             # 如果还有剩余数量且是限价单，加入买盘订单簿
-            if order.remaining_quantity > 0  and order.order_optionType == OrderOptionType.LimitOrder.value:
+            if order.remaining_quantity > 0  and order.order_optionType == OrderType.LimitOrder.value:
                 heapq.heappush(self.bids, order)
         elif order.side == OrderSide.Sell.value:
             # 处理卖单：尝试与买盘订单匹配
             trades = self._match_sell_order(order)
             # 如果还有剩余数量且是限价单，加入卖盘订单簿
-            if order.remaining_quantity > 0 and order.order_optionType == OrderOptionType.LimitOrder.value:
+            if order.remaining_quantity > 0 and order.order_optionType == OrderType.LimitOrder.value:
                 heapq.heappush(self.asks, order)
 
         elif order.side == OrderSide.Close.value:
@@ -46,7 +46,7 @@ class MatchingEngine:
         """尝试撮合买单与卖盘订单"""
         trades = []
         while(buy_order.remaining_quantity and self.asks and (
-          (buy_order.order_optionType == OrderOptionType.MarketOrder.value or
+          (buy_order.order_optionType == OrderType.MarketOrder.value or
            (buy_order.price is not None and buy_order.price >= self.asks[0].price)))):
             ## 订单簿中第一个卖单
             best_ask = self.asks[0]
@@ -60,7 +60,7 @@ class MatchingEngine:
             best_ask.fill(trade_quantity, trade_price)
 
             # 如果卖单已全部成交，从订单簿中移除
-            if best_ask.status == OrderProcessStatusType.Filled.value:
+            if best_ask.status == OrderStatus.Filled.value:
                 heapq.heappop(self.asks)
 
 
@@ -75,7 +75,7 @@ class MatchingEngine:
         trades = []
 
         while (sell_order.remaining_quantity > 0 and self.bids and
-               (sell_order.order_optionType == OrderOptionType.MarketOrder or
+               (sell_order.order_optionType == OrderType.MarketOrder or
                 (sell_order.price is not None and sell_order.price <= self.bids[0].price))):
 
             best_bid = self.bids[0]
@@ -85,7 +85,7 @@ class MatchingEngine:
             trades.append(sell_order)
 
             # 如果买单已全部成交，从订单簿中移除
-            if best_bid.status == OrderProcessStatusType.Filled.value:
+            if best_bid.status == OrderStatus.Filled.value:
                 heapq.heappop(self.bids)
 
 
@@ -97,7 +97,7 @@ class MatchingEngine:
 
         order = self.orders[order_id]
 
-        if order.status not in [OrderProcessStatusType.Padding.value, OrderProcessStatusType.PartiallyFilled.value]:
+        if order.status not in [OrderStatus.Padding.value, OrderStatus.PartiallyFilled.value]:
             return False
         # 从订单簿中移除（如果存在）
         if order in self.bids:
@@ -108,7 +108,7 @@ class MatchingEngine:
             self.asks.remove(order)
             heapq.heapify(self.asks)
 
-        order.status = OrderProcessStatusType.Cancelled.value
+        order.status = OrderStatus.Cancelled.value
 
 
 

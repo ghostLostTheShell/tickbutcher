@@ -22,22 +22,32 @@ class TimeframeType(enum.Enum):
 from .candlefeed import CandleFeed
 
 
-
 class CandleIndexer:
     position: int
     candleFeed: CandleFeed
     timeframe: TimeframeType
     financial_type_candle_table: Dict[FinancialInstrument, CandleFeed]
+    min_time_frame: TimeframeType
 
-    def __init__(self, position: int, table: Dict[FinancialInstrument, CandleFeed]):
+    def __init__(self, position: int, table: Dict[FinancialInstrument, CandleFeed], min_time_frame: TimeframeType):
       self.position = position
       self.financial_type_candle_table = table
       self.timeframe = None
-        
+      self.min_time_frame = min_time_frame
+
+
     def __getattr__(self, name: str):
       # bct_m15[-1]
-      financial_type_id, timeframe = name.split("_")
+      financial_type_id = "" 
+      timeframe = ""
       
+      ss = name.split("_")
+      if len(ss) == 2:
+        financial_type_id, timeframe = ss
+      else:
+        financial_type_id = ss[0]
+        timeframe = self.min_time_frame.name
+
       try:
         self.timeframe = TimeframeType[timeframe]
       except KeyError:

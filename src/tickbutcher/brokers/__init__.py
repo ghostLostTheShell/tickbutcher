@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 import enum
 from typing import TYPE_CHECKING, List, Optional
 from tickbutcher.commission import Commission
-from tickbutcher.order import Order, OrderOptionType, OrderSide
+from tickbutcher.order import Order, OrderType, OrderSide, OrderStatus
 from tickbutcher.products import AssetType
 from tickbutcher.trade import Trade
 
@@ -10,9 +11,25 @@ from tickbutcher.trade import Trade
 if TYPE_CHECKING:
     from tickbutcher.contemplationer import Contemplationer
 
-class BrokerEvent(enum.Enum):
-  order_changed = 1
-  trade_changed = 2
+class OrderStatusEvent():
+  order: Order
+  event_type: OrderStatus
+
+  def __init__(self, order: Order, event_type: OrderStatus):
+    self.order = order
+    self.event_type = event_type
+    
+class TradeStatusEvent():
+  trade: Trade
+  event_type: str
+
+  def __init__(self, trade: Trade, event_type: str):
+    self.trade = trade
+    self.event_type = event_type
+
+OrderStatusEventCallback = Callable[[OrderStatusEvent], None]
+
+TradeStatusEventCallback = Callable[[TradeStatusEvent], None]
 
 class Broker(ABC):
   
@@ -20,7 +37,7 @@ class Broker(ABC):
   def submit_order(self, 
                    *,
                    symbol:str, 
-                   type:OrderOptionType,
+                   type:OrderType,
                    side:OrderSide,
                    leverage:Optional[int]=None,
                    quantity:Optional[int]=None,
@@ -28,8 +45,8 @@ class Broker(ABC):
                    ):
     """执行买入操作
 
-    如果 OrderOptionType 为市价单，则直接以当前市场价格下单
-    如果 OrderOptionType 为限价单，参数 price 不能为空
+    如果 OrderType 为市价单，则直接以当前市场价格下单
+    如果 OrderType 为限价单，参数 price 不能为空
     """
     pass
 
@@ -50,36 +67,46 @@ class Broker(ABC):
     pass
   
   @abstractmethod
-  def trigger_order_changed_event(self, event: 'BrokerEvent'):
+  def trigger_order_changed_event(self, event: OrderStatusEvent):
     """
     触发定单事件
     """
     pass
-  @abstractmethod
-  def trigger_trade_changed_event(self, event: 'BrokerEvent'):
-    """
-    触发仓位事件
-    """
-    pass
+
 
   @abstractmethod
-  def add_order_changed_event_listener(self, listener):
+  def add_order_changed_event_listener(self, listener: OrderStatusEventCallback):
     """
     添加事件监听器
     """
     pass
 
   @abstractmethod
-  def remove_trade_changed_event_listener(self,listener):
+  def remove_order_changed_event_listener(self, listener: OrderStatusEventCallback):
     """
     移除事件监听器
     """
     pass
-  
-  @abstractmethod  
-  def get_order_list(self)->List[Order]:
+
+  @abstractmethod
+  def trigger_trade_changed_event(self, event: OrderStatusEvent):
+    """
+    触发仓位事件
+    """
     pass
   
-  @abstractmethod  
-  def get_trade_list(self)->List[Trade]:
+  @abstractmethod
+  def add_trade_changed_event_listener(self, listener: TradeStatusEventCallback):
+    pass
+  
+  @abstractmethod
+  def remove_trade_changed_event_listener(self, listener: TradeStatusEventCallback):
+    pass
+
+  @abstractmethod
+  def get_order_list(self) -> List[Order]:
+    pass
+
+  @abstractmethod
+  def get_trade_list(self) -> List[Trade]:
     pass

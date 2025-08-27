@@ -19,3 +19,5 @@ class FinancialInstrument():
       self.symbol = symbol
       self.id = id
       self.type = type
+
+  
