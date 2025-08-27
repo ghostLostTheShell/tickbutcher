@@ -112,6 +112,7 @@ class Broker():
     self.orders = []    ## 接受的订单
     # ordermanager 的回调函数
     self.order_status_callback = None
+    self.commission_table = {}
 
 
   # 由OrderManager调用，注册回调函数
