@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple
 
 from pandas import Series
 
+from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.products import FinancialInstrument
 
 
@@ -26,12 +27,12 @@ class CandleIndexer:
     position: int
     candleFeed: CandleFeed
     timeframe: TimeframeType
-    financial_type_candle_table: Dict[FinancialInstrument, CandleFeed]
+    trading_pair_candle_table: Dict[TradingPair, CandleFeed]
     min_time_frame: TimeframeType
 
-    def __init__(self, position: int, table: Dict[FinancialInstrument, CandleFeed], min_time_frame: TimeframeType):
+    def __init__(self, position: int, table: Dict[TradingPair, CandleFeed], min_time_frame: TimeframeType):
       self.position = position
-      self.financial_type_candle_table = table
+      self.trading_pair_candle_table = table
       self.timeframe = None
       self.min_time_frame = min_time_frame
 
@@ -52,12 +53,12 @@ class CandleIndexer:
         self.timeframe = TimeframeType[timeframe]
       except KeyError:
         raise ValueError(f"Invalid timeframe: {timeframe}")
-      
-      
-      for financial_type in self.financial_type_candle_table.keys():
-        if financial_type.id == financial_type_id:
-          self.candlefeed = self.financial_type_candle_table[financial_type]
-          
+
+
+      for trading_pair in self.trading_pair_candle_table.keys():
+        if trading_pair.id == financial_type_id:
+          self.candlefeed = self.trading_pair_candle_table[trading_pair]
+
       return self
 
     def __getitem__(self, key: Tuple[int , Optional[str]])->Series:

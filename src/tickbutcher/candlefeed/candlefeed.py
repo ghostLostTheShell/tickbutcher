@@ -1,19 +1,19 @@
 from datetime import datetime, timedelta, timezone as TimeZone
 from typing import List, Optional
+from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
-from tickbutcher.products import FinancialInstrument
 
 class CandleFeed():
   timezone:TimeZone
-  financial_type:FinancialInstrument
+  trading_pair:TradingPair
   timeframe_level: TimeframeType
   timezone_offset:int
   
   def __init__(self, *, 
-               financial_type:FinancialInstrument,
+               trading_pair:TradingPair,
                timeframe_level:TimeframeType,
                timezone:TimeZone=None):
-    self.financial_type = financial_type
+    self.trading_pair = trading_pair
     self.timeframe_level = timeframe_level
     
     if timezone is None:

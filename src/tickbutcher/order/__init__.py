@@ -1,7 +1,4 @@
 import enum
-import uuid
-from datetime import datetime
-from tickbutcher.order import OrderType, OrderStatus, OrderSide
 from tickbutcher.products import FinancialInstrument
 
 

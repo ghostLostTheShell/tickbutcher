@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import Optional
 from zoneinfo import ZoneInfo
+from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
 from pandas import DataFrame
 import pandas as pd
 from tickbutcher.candlefeed.candlefeed import CandleFeed
-from tickbutcher.products import FinancialInstrument
 
 class PandasCandleFeed(CandleFeed):
   """基于Pandas的K线数据源"""
@@ -22,12 +22,12 @@ class PandasCandleFeed(CandleFeed):
   
   
   def __init__(self, *, 
-               financial_type:FinancialInstrument, 
+               trading_pair:TradingPair,
                timeframe_level:TimeframeType,
                dataframe:DataFrame,
                timezone:ZoneInfo=None):
-    
-    super().__init__(financial_type=financial_type, timeframe_level=timeframe_level, timezone=timezone)
+
+    super().__init__(trading_pair=trading_pair, timeframe_level=timeframe_level, timezone=timezone)
     
     if timeframe_level is  TimeframeType.sec1:
       ## 检查index的步进是否为1秒

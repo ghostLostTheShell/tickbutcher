@@ -2,28 +2,27 @@ from datetime import datetime
 import unittest
 from datetime import datetime, timedelta, timezone as TimeZone
 from tests.dataset import get_sol_usdt_1s_and_1min
+from tickbutcher.brokers.trading_pair import common as common_trading_pair
 from tickbutcher.candlefeed import CandleIndexer, TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import load_dataframe_from_sql, PandasCandleFeed
-from tickbutcher.products import AssetType, FinancialInstrument
 
 class CandlefeedUnitTest(unittest.TestCase):
   
   def test_candle_indexer(self):
     solusdt_1s, solusdt_1min= get_sol_usdt_1s_and_1min()
-    
-    sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOLUSDTPS", type=AssetType.PerpetualSwap)
-  
-    sol_candle_feed = PandasCandleFeed(financial_type=sol_usdt_ps, 
+
+    sol_candle_feed = PandasCandleFeed(trading_pair=common_trading_pair.SOLUSDTP,
                                        timeframe_level=TimeframeType.sec1,
                                        dataframe=solusdt_1s)
     sol_candle_feed.load_data(solusdt_1min, TimeframeType.min1)
-    
-    
     indexs = sol_candle_feed.get_position_index_list()
     
-    candle_indexer = CandleIndexer(position=indexs[0], table={sol_usdt_ps: sol_candle_feed})
+    candle_indexer = CandleIndexer(position=indexs[0], 
+                                   table={common_trading_pair.SOLUSDTP: sol_candle_feed},
+                                   min_time_frame=TimeframeType.sec1)
+
+    sec = candle_indexer.SOLUSDTP_sec1[0]
     
-    sec = candle_indexer.SOLUSDTPS_sec1[0]
     
     self.assertEqual(sec['volume'], solusdt_1s.loc[indexs[0], 'volume'])
     self.assertEqual(sec['open'], solusdt_1s.loc[indexs[0], 'open'])
@@ -80,11 +79,10 @@ class PandasCandleFeedUnitTest(unittest.TestCase):
                                           end_date=end_start_date, 
                                           data_source_url="sqlite:///./tmp/app.db")
 
-    sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOLUSDTPS", type=AssetType.PerpetualSwap)
 
     # 检查PandasCandleFeed 对象的初始化时间
     start_time = datetime.now()
-    sol_candle_feed = PandasCandleFeed(financial_type=sol_usdt_ps, 
+    sol_candle_feed = PandasCandleFeed(trading_pair=common_trading_pair.SOLUSDTP,
                                        timeframe_level=TimeframeType.sec1,
                                        dataframe=sol_usdt_1s_dataframe)
     sol_candle_feed.load_data(sol_usdt_1m, TimeframeType.min1)

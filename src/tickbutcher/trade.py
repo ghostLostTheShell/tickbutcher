@@ -5,7 +5,7 @@ from tickbutcher.products import FinancialInstrument
 
 
 class TradeStatus(enum.Enum):
-  Created = 0
+  Open = 0
   Onchared = 2
   Close = 1
   
@@ -20,8 +20,10 @@ class Trade(object):
     self.id = id
     self.financial_type = financial_type
     self.orders = []
+    self.staus = TradeStatus.Open
     
     
+     
   def add_order(self, order: Order):
     self.orders.append(order)
   

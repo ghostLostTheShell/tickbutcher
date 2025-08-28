@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 from tickbutcher.commission import Commission
 from tickbutcher.order import Order, OrderStatus, OrderType, OrderSide
 from tickbutcher.products import AssetType, FinancialInstrument
-from tickbutcher.trade import Trade
+from tickbutcher.trade import Trade, TradeStatus
 from tickbutcher.brokers import Broker, OrderStatusEventCallback, TradeStatusEventCallback, OrderStatusEvent, TradeStatusEvent
 
 if TYPE_CHECKING:
@@ -17,6 +17,7 @@ class CommonBroker(Broker):
   order_list: List[Order] = None
   order_completed_list: List[Order] = None
   trade_list: List[Trade] = None
+  asset_value_list: Dict[AssetType, float] = None
 
   def __init__(self):
     self.commission_table = {}
@@ -38,26 +39,35 @@ class CommonBroker(Broker):
     """
     触发事件
     """
-    pass
+    for listener in self.order_changed_event_listener:
+      listener(event) 
 
   def trigger_trade_changed_event(self, event: TradeStatusEvent):
     """
     触发事件
     """
-    pass
+    for listener in self.order_changed_event_listener:
+      listener(event)
+
+  def trigger_trade_changed_event(self, event: TradeStatusEvent):
+    """
+    触发事件
+    """
+    for listener in self.trade_changed_event_listener:
+      listener(event)
 
   def add_order_changed_event_listener(self, listener):
     """
     添加事件监听器
     """
-    pass
+    self.order_changed_event_listener.append(listener)
 
   def remove_trade_changed_event_listener(self,listener):
     """
     移除事件监听器
     """
-    pass
-  
+    self.order_changed_event_listener.remove(listener)
+
   def get_order_list(self)->List[Order]:
     return []
   
@@ -90,18 +100,23 @@ class CommonBroker(Broker):
                     leverage=leverage,
                     quantity=quantity,
                     price=None,
-                    
                     id=self.generate_order_id())
-      
-      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
-     
-      order.status = OrderStatus.Completed
-      self.order_completed_list.append(order)
-      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Completed))
 
+      order.status = OrderStatus.Created
+      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
+      order.status = OrderStatus.Completed
+      order.execution_price = current.close
+      order.add_execution_quantity(current.volume)
+      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Completed))
+      self.order_completed_list.append(order)
       
-      trade = Trade()
-      
+      trade = Trade(id=self.generate_trade_id(),
+                    financial_type=financial_type)
+      self.trade_list.append(trade)
+      trade.add_order(order)
+      self.trigger_trade_changed_event(TradeStatusEvent(trade=trade, event_type=TradeStatus.Open))
+
+
     if order_option_type is OrderType.LimitOrder:
       #限价单
       order = Order(financial_type=financial_type,
@@ -117,10 +132,18 @@ class CommonBroker(Broker):
       self.order_list.append(order)
       self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Submitted))
 
+
   
-  #生成订单id 
   def generate_order_id(self) -> int:
+    """生成订单id"""
     if len(self.order_list) == 0:
       return 0
     else:
       return self.order_list[-1] + 1
+    
+  def generate_trade_id(self) -> int:
+    """生成交易id"""
+    if len(self.trade_list) == 0:
+      return 0
+    else:
+      return self.trade_list[-1] + 1
