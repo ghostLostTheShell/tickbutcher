@@ -5,53 +5,67 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "[test] PandasCandleFeedUnitTest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": [
+        "tests.test_candlefeed.PandasCandleFeedUnitTest.test_load_data_on_level_sec1"
+      ]
+    },
+    {
       "name": "Python Debugger: Module",
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",
-      "args": ["tests.test_contemplationer.ContemplationerUnitTest"]
+      "args": [
+        "tests.test_contemplationer.ContemplationerUnitTest"
+      ]
     },
     {
       "name": "[test] CandlefeedUnitTest",
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",
-      "args": ["tests.test_candlefeed.CandlefeedUnitTest"]
+      "args": [
+        "tests.test_candlefeed.CandlefeedUnitTest"
+      ]
     },
     {
       "name": "[test] CandlefeedUnitTest.test_klines_for_timeframe",
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",
-      "args": ["tests.test_candlefeed.CandlefeedUnitTest.test_klines_for_timeframe"]
+      "args": [
+        "tests.test_candlefeed.CandlefeedUnitTest.test_klines_for_timeframe"
+      ]
     },
     {
       "name": "[test] PandasCandleFeedUnitTest.test_load_data",
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",
-      "args": ["tests.test_candlefeed.PandasCandleFeedUnitTest.test_load_data"]
+      "args": [
+        "tests.test_candlefeed.PandasCandleFeedUnitTest.test_load_data"
+      ]
     },
-        {
+    {
       "name": "[test] CandlefeedUnitTest.test_candle_indexer",
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",
-      "args": ["tests.test_candlefeed.CandlefeedUnitTest.test_candle_indexer"]
+      "args": [
+        "tests.test_candlefeed.CandlefeedUnitTest.test_candle_indexer"
+      ]
     },
     {
       "name": "[test] ContemplationerUnitTest",
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",
-      "args": ["tests.test_contemplationer.ContemplationerUnitTest"]
-    },
-    {
-      "name": "[test] FinancialInStrumentUnitTest",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "unittest",
-      "args": ["tests.test_financialIn_strument.FinancialInStrumentUnitTest"]
+      "args": [
+        "tests.test_contemplationer.ContemplationerUnitTest"
+      ]
     }
   ]
 }

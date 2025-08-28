@@ -8,7 +8,9 @@ import pandas as pd
 from tickbutcher.candlefeed.candlefeed import CandleFeed
 
 class PandasCandleFeed(CandleFeed):
-  """基于Pandas的K线数据源"""
+  """基于Pandas的K线数据源
+  
+  Note: 如果下列dataframe部分为空，可能导致自下向上查找更小时间间隔K线时失败"""
   timeframe_s1:DataFrame = None
   timeframe_min1:DataFrame = None
   timeframe_min5:DataFrame = None
@@ -34,9 +36,7 @@ class PandasCandleFeed(CandleFeed):
       first100_idx = dataframe.index[:100]
       if not (pd.Series(first100_idx).diff().dropna() == 1000).all():
         raise ValueError("Dataframe index is not 1 second apart")
-    elif timeframe_level is TimeframeType.min1:
-      raise NotImplementedError("min1 timeframe validation not implemented yet")
-    else:
+    elif timeframe_level is None:
       raise NotImplementedError(f"{timeframe_level} timeframe validation not implemented yet")
 
     self.load_data(dataframe, timeframe_level)
@@ -143,35 +143,379 @@ class PandasCandleFeed(CandleFeed):
               "open": open
           })
       else:
-        position = position + self.timezone_offset + (offset * 1000)
+        position = position + self.timezone_offset + (offset * 1000 * 60)
         return self.timeframe_min1.loc[position]
 
     return self.timeframe_min1.loc[position]
 
   def min5(self, position, offset:Optional[int]=0):
-    
-    raise NotImplementedError("min5 aggregation from sec1 not implemented yet")
+    """ 获取5分钟时间框架的k线
+
+    Args:
+        position (_type_): 获取的位置
+
+    Raises:
+        ValueError: _description_
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if self.timeframe_min5 is None:
+      raise ValueError("No min5 timeframe data available")
+
+    if self.timeframe_level.value >= TimeframeType.min5.value:
+        if offset == 0:
+            return self.timeframe_min5.loc[position]
+        
+        position = position + self.timezone_offset + (offset * 1000 * 60 * 5)
+        return self.timeframe_min5.loc[position]
+
+    else:
+      if offset == 0:
+        min = position % (1000 * 60 * 5)
+        if min == 0:
+          return self.min1(position)
+        else:
+          start_index = position - min
+          sum_volume = self.timeframe_min1.loc[start_index:position, "volume"].sum()
+          high = self.timeframe_min1.loc[start_index:position, "high"].max()
+          low = self.timeframe_min1.loc[start_index:position, "low"].min()
+          close = self.timeframe_min1.loc[position, "close"]
+          open = self.timeframe_min1.loc[start_index, "open"]
+          return pd.Series({
+              "volume": sum_volume,
+              "high": high,
+              "low": low,
+              "close": close,
+              "open": open
+          })
+      else:
+        position = position + self.timezone_offset + (offset * 1000 * 60 * 5)
+        return self.timeframe_min5.loc[position]
 
   def min15(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("min15 aggregation from sec1 not implemented yet")
+      """ 获取15分钟时间框架的k线
+
+      Args:
+          position (_type_): 获取的位置
+
+      Raises:
+          ValueError: _description_
+          ValueError: _description_
+
+      Returns:
+          _type_: _description_
+      """
+      if self.timeframe_min15 is None:
+        raise ValueError("No min15 timeframe data available")
+
+      if self.timeframe_level.value >= TimeframeType.min15.value:
+          if offset == 0:
+              return self.timeframe_min15.loc[position]
+
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 15)
+          return self.timeframe_min15.loc[position]
+
+      else :
+        if offset == 0:
+          min5 = position % (1000 * 60 * 15)
+          if min5 == 0:
+            return self.min5(position)
+          else:
+            start_index = position - min5
+            sum_volume = self.timeframe_min5.loc[start_index:position, "volume"].sum()
+            high = self.timeframe_min5.loc[start_index:position, "high"].max()
+            low = self.timeframe_min5.loc[start_index:position, "low"].min()
+            close = self.timeframe_min5.loc[position, "close"]
+            open = self.timeframe_min5.loc[start_index, "open"]
+            return pd.Series({
+                "volume": sum_volume,
+                "high": high,
+                "low": low,
+                "close": close,
+                "open": open
+            })
+        else:
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 15)
+          return self.timeframe_min15.loc[position]
 
   def h1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("h1 aggregation from sec1 not implemented yet")
+      """ 获取1小时 时间框架的k线
+
+      Args:
+          position (_type_): 获取的位置
+
+      Raises:
+          ValueError: _description_
+          ValueError: _description_
+
+      Returns:
+          _type_: _description_
+      """
+      if self.timeframe_h1 is None:
+        raise ValueError("No h1 timeframe data available")
+
+      if self.timeframe_level.value >= TimeframeType.h1.value:
+          if offset == 0:
+              return self.timeframe_h1.loc[position]
+
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60)
+          return self.timeframe_h1.loc[position]
+
+      else :
+        if offset == 0:
+          min15 = position % (1000 * 60 * 60)
+          if min15 == 0:
+            return self.min15(position)
+          else:
+            start_index = position - min15
+            sum_volume = self.timeframe_min15.loc[start_index:position, "volume"].sum()
+            high = self.timeframe_min15.loc[start_index:position, "high"].max()
+            low = self.timeframe_min15.loc[start_index:position, "low"].min()
+            close = self.timeframe_min15.loc[position, "close"]
+            open = self.timeframe_min15.loc[start_index, "open"]
+            return pd.Series({
+                "volume": sum_volume,
+                "high": high,
+                "low": low,
+                "close": close,
+                "open": open
+            })
+        else:
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60)
+          return self.timeframe_h1.loc[position]
 
   def h4(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("h4 aggregation from sec1 not implemented yet")
+      """ 获取4小时 时间框架的k线
+
+      Args:
+          position (_type_): 获取的位置
+
+      Raises:
+          ValueError: _description_
+          ValueError: _description_
+
+      Returns:
+          _type_: _description_
+      """
+      if self.timeframe_h4 is None:
+        raise ValueError("No h4 timeframe data available")
+
+      if self.timeframe_level.value >= TimeframeType.h4.value:
+          if offset == 0:
+              return self.timeframe_h4.loc[position]
+
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 4)
+          return self.timeframe_h4.loc[position]
+
+      else :
+        if offset == 0:
+          h1 = position % (1000 * 60 * 60 * 4)
+          if h1 == 0:
+            return self.h1(position)
+          else:
+            start_index = position - h1
+            sum_volume = self.timeframe_h1.loc[start_index:position, "volume"].sum()
+            high = self.timeframe_h1.loc[start_index:position, "high"].max()
+            low = self.timeframe_h1.loc[start_index:position, "low"].min()
+            close = self.timeframe_h1.loc[position, "close"]
+            open = self.timeframe_h1.loc[start_index, "open"]
+            return pd.Series({
+                "volume": sum_volume,
+                "high": high,
+                "low": low,
+                "close": close,
+                "open": open
+            })
+        else:
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 4)
+          return self.timeframe_h4.loc[position]
 
   def d1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("d1 aggregation from sec1 not implemented yet")
+      """ 获取1天时间框架的k线
+
+      Args:
+          position (_type_): 获取的位置
+
+      Raises:
+          ValueError: _description_
+          ValueError: _description_
+
+      Returns:
+          _type_: _description_
+      """
+      if self.timeframe_d1 is None:
+        raise ValueError("No d1 timeframe data available")
+
+      if self.timeframe_level.value >= TimeframeType.d1.value:
+          if offset == 0:
+              return self.timeframe_d1.loc[position]
+
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24)
+          return self.timeframe_d1.loc[position]
+
+      else :
+        if offset == 0:
+          h4 = position % (1000 * 60 * 60 * 24)
+          if h4 == 0:
+            return self.h4(position)
+          else:
+            start_index = position - h4
+            sum_volume = self.timeframe_h4.loc[start_index:position, "volume"].sum()
+            high = self.timeframe_h4.loc[start_index:position, "high"].max()
+            low = self.timeframe_h4.loc[start_index:position, "low"].min()
+            close = self.timeframe_h4.loc[position, "close"]
+            open = self.timeframe_h4.loc[start_index, "open"]
+            return pd.Series({
+                "volume": sum_volume,
+                "high": high,
+                "low": low,
+                "close": close,
+                "open": open
+            })
+        else:
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24)
+          return self.timeframe_d1.loc[position]
 
   def w1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("w1 aggregation from sec1 not implemented yet")
+      """ 获取1周时间框架的k线
+
+      Args:
+          position (_type_): 获取的位置
+
+      Raises:
+          ValueError: _description_
+          ValueError: _description_
+
+      Returns:
+          _type_: _description_
+      """
+      if self.timeframe_w1 is None:
+        raise ValueError("No w1 timeframe data available")
+
+      if self.timeframe_level.value >= TimeframeType.w1.value:
+          if offset == 0:
+              return self.timeframe_w1.loc[position]
+
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 7)
+          return self.timeframe_w1.loc[position]
+
+      else :
+        if offset == 0:
+          d1 = position % (1000 * 60 * 60 * 24 * 7)
+          if d1 == 0:
+            return self.d1(position)
+          else:
+            start_index = position - d1
+            sum_volume = self.timeframe_d1.loc[start_index:position, "volume"].sum()
+            high = self.timeframe_d1.loc[start_index:position, "high"].max()
+            low = self.timeframe_d1.loc[start_index:position, "low"].min()
+            close = self.timeframe_d1.loc[position, "close"]
+            open = self.timeframe_d1.loc[start_index, "open"]
+            return pd.Series({
+                "volume": sum_volume,
+                "high": high,
+                "low": low,
+                "close": close,
+                "open": open
+            })
+        else:
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 7)
+          return self.timeframe_w1.loc[position]
+
 
   def mo1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("mo1 aggregation from sec1 not implemented yet")
+      """ 获取1周时间框架的k线
+
+      Args:
+          position (_type_): 获取的位置
+
+      Raises:
+          ValueError: _description_
+          ValueError: _description_
+
+      Returns:
+          _type_: _description_
+      """
+      if self.timeframe_mo1 is None:
+        raise ValueError("No mo1 timeframe data available")
+
+      if self.timeframe_level.value >= TimeframeType.mo1.value:
+          if offset == 0:
+              return self.timeframe_mo1.loc[position]
+
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 30)
+          return self.timeframe_mo1.loc[position]
+
+      else :
+        if offset == 0:
+          w1 = position % (1000 * 60 * 60 * 24 * 30)
+          if w1 == 0:
+            return self.w1(position)
+          else:
+            start_index = position - w1
+            sum_volume = self.timeframe_w1.loc[start_index:position, "volume"].sum()
+            high = self.timeframe_w1.loc[start_index:position, "high"].max()
+            low = self.timeframe_w1.loc[start_index:position, "low"].min()
+            close = self.timeframe_w1.loc[position, "close"]
+            open = self.timeframe_w1.loc[start_index, "open"]
+            return pd.Series({
+                "volume": sum_volume,
+                "high": high,
+                "low": low,
+                "close": close,
+                "open": open
+            })
+        else:
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 30)
+          return self.timeframe_mo1.loc[position]
 
   def y1(self, position, offset:Optional[int]=0):
-    raise NotImplementedError("y1 aggregation from sec1 not implemented yet")
+      """ 获取1年时间框架的k线
+
+      Args:
+          position (_type_): 获取的位置
+
+      Raises:
+          ValueError: _description_
+          ValueError: _description_
+
+      Returns:
+          _type_: _description_
+      """
+      if self.timeframe_y1 is None:
+        raise ValueError("No y1 timeframe data available")
+
+      if self.timeframe_level.value >= TimeframeType.y1.value:
+          if offset == 0:
+              return self.timeframe_y1.loc[position]
+
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 365)
+          return self.timeframe_y1.loc[position]
+
+      else :
+        if offset == 0:
+          mo1 = position % (1000 * 60 * 60 * 24 * 365)
+          if mo1 == 0:
+            return self.mo1(position)
+          else:
+            start_index = position - mo1
+            sum_volume = self.timeframe_mo1.loc[start_index:position, "volume"].sum()
+            high = self.timeframe_mo1.loc[start_index:position, "high"].max()
+            low = self.timeframe_mo1.loc[start_index:position, "low"].min()
+            close = self.timeframe_mo1.loc[position, "close"]
+            open = self.timeframe_mo1.loc[start_index, "open"]
+            return pd.Series({
+                "volume": sum_volume,
+                "high": high,
+                "low": low,
+                "close": close,
+                "open": open
+            })
+        else:
+          position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 365)
+          return self.timeframe_y1.loc[position]
 
 def load_dataframe_from_sql(*, 
                             inst_id:str, 
