@@ -1,9 +1,9 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import CandleFeed, CandleIndexer, TimeframeType
 from tickbutcher.log import logger
-from tickbutcher.products import FinancialInstrument
 from typing import Dict, List, TYPE_CHECKING, Type, TypeVar, ParamSpec
 # 避免循环导入
 if TYPE_CHECKING:
@@ -15,22 +15,22 @@ T = TypeVar("T", bound='Strategy')
   
 
 class Contemplationer:
-  broker:'Broker'
+  brokers: List['Broker']
   strategys: List['Strategy']
   candle_list: List[CandleFeed]
-  financial_type_candle_table: Dict[FinancialInstrument, CandleFeed]
+  trading_pair_candle_table: Dict[TradingPair, CandleFeed]
   current_time: int
   timeframe_level:TimeframeType
-  
-  def __init__(self, *, timeframe_level:TimeframeType):
+
+  def __init__(self, *, timeframe_level:TimeframeType, brokers:List['Broker']):
     self.timeframe_level = timeframe_level
     self.strategys = []
     self.candle_list = []
-    self.financial_type_candle_table = {}
+    self.trading_pair_candle_table = {}
+    self.brokers = brokers
+    for broker in brokers:
+      broker.set_contemplationer(self)
 
-  def set_broker(self, broker: 'Broker'):
-    self.broker = broker
-    broker.set_contemplationer(self)
 
   def set_current_time(self, current_time: int):
     self.current_time = current_time
@@ -43,7 +43,7 @@ class Contemplationer:
     if candleFeed.timeframe_level != self.timeframe_level:
       raise ValueError(f"CandleFeed timeframe {candleFeed.timeframe_level} does not match Contemplationer timeframe {self.timeframe_level}")
     self.candle_list.append(candleFeed)
-    self.financial_type_candle_table[candleFeed.financial_type] = candleFeed
+    self.trading_pair_candle_table[candleFeed.trading_pair] = candleFeed
 
   def get_time_interval(self):
     if len(self.candle_list) == 0:
@@ -61,8 +61,10 @@ class Contemplationer:
 
     for current_time in time_interval:
       self.set_current_time(current_time)
-      self.broker.next()
       
+      for broker in self.brokers:
+        broker.next()
+
       for strategy in self.strategys:
         strategy.next()
 
@@ -70,4 +72,4 @@ class Contemplationer:
 
   @property
   def candle(self):
-    return CandleIndexer(self.current_time, self.financial_type_candle_table, self.timeframe_level)
+    return CandleIndexer(self.current_time, self.trading_pair_candle_table, self.timeframe_level)

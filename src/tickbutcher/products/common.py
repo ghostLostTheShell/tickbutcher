@@ -2,20 +2,20 @@
 from tickbutcher.products import AssetType, AssetType, FinancialInstrument
 
 # 加密货币
-USDT = FinancialInstrument("USDT", AssetType.CRYPTO)
-BTC = FinancialInstrument("BTC", AssetType.CRYPTO)
-ETH = FinancialInstrument("ETH", AssetType.CRYPTO)
-SOL = FinancialInstrument("SOL", AssetType.CRYPTO)
+USDT = FinancialInstrument(symbol="USDT", type=AssetType.CRYPTO)
+BTC = FinancialInstrument(symbol="BTC", type=AssetType.CRYPTO)
+ETH = FinancialInstrument(symbol="ETH", type=AssetType.CRYPTO)
+SOL = FinancialInstrument(symbol="SOL", type=AssetType.CRYPTO)
 
 # 永续合约
-BTCUSDT_P = FinancialInstrument("BTC/USDT@p", AssetType.PerpetualSwap)
-ETHUSDT_P = FinancialInstrument("ETH/USDT@p", AssetType.PerpetualSwap)
-SOLUSDT_P = FinancialInstrument("SOL/USDT@p", AssetType.PerpetualSwap)
+BTCUSDT_P = FinancialInstrument(symbol="BTC/USDT@p", type=AssetType.PerpetualSwap)
+ETHUSDT_P = FinancialInstrument(symbol="ETH/USDT@p", type=AssetType.PerpetualSwap)
+SOLUSDT_P = FinancialInstrument(symbol="SOL/USDT@p", type=AssetType.PerpetualSwap)
 
 # 法币
-CNY = FinancialInstrument("CNY", AssetType.FiatCurrency)
-USD = FinancialInstrument("USD", AssetType.FiatCurrency)
-JPY = FinancialInstrument("JPY", AssetType.FiatCurrency)
-SGD = FinancialInstrument("SGD", AssetType.FiatCurrency)
-GDB = FinancialInstrument("GDB", AssetType.FiatCurrency)
-EUR = FinancialInstrument("EUR", AssetType.FiatCurrency)
+CNY = FinancialInstrument(symbol="CNY", type=AssetType.FiatCurrency)
+USD = FinancialInstrument(symbol="USD", type=AssetType.FiatCurrency)
+JPY = FinancialInstrument(symbol="JPY", type=AssetType.FiatCurrency)
+SGD = FinancialInstrument(symbol="SGD", type=AssetType.FiatCurrency)
+GDB = FinancialInstrument(symbol="GDB", type=AssetType.FiatCurrency)
+EUR = FinancialInstrument(symbol="EUR", type=AssetType.FiatCurrency)

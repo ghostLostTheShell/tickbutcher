@@ -1,14 +1,13 @@
 
 from datetime import datetime
 import unittest
-from zoneinfo import ZoneInfo
 from tickbutcher.brokers import Broker
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import PandasCandleFeed, load_dataframe_from_sql
 from tickbutcher.commission import MakerTakerCommission
 from tickbutcher.contemplationer import Contemplationer
 from tickbutcher.products import AssetType, FinancialInstrument
-
+from tickbutcher.brokers.trading_pair import common as common_trading_pair
 
 class ContemplationerUnitTest(unittest.TestCase):
   def test_int_time_interval(self):
@@ -28,7 +27,7 @@ class ContemplationerUnitTest(unittest.TestCase):
     
     sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOLUSDTPS", type=AssetType.PerpetualSwap)
 
-    sol_candle_feed = PandasCandleFeed(financial_type=sol_usdt_ps, 
+    sol_candle_feed = PandasCandleFeed(trading_pair=common_trading_pair.SOLUSDTP, 
                                        timeframe_level=TimeframeType.sec1,
                                        dataframe=sol_usdt_1s_dataframe)
 
@@ -37,9 +36,7 @@ class ContemplationerUnitTest(unittest.TestCase):
 
     broker = Broker()
     broker.set_commission(AssetType.PerpetualSwap, maker_taker_commission)
-
-    contemplationer = Contemplationer()
-    contemplationer.set_broker(broker)
+    contemplationer = Contemplationer(timeframe_level=TimeframeType.sec1, brokers=[broker])
     contemplationer.add_kline(candleFeed=sol_candle_feed)
 
 

@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-import enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 from tickbutcher.commission import Commission
 from tickbutcher.order import Order, OrderType, OrderSide, OrderStatus
 from tickbutcher.products import AssetType
 from tickbutcher.trade import Trade
+from tickbutcher.brokers.trading_pair import TradingPair
 
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
@@ -32,7 +32,16 @@ OrderStatusEventCallback = Callable[[OrderStatusEvent], None]
 TradeStatusEventCallback = Callable[[TradeStatusEvent], None]
 
 class Broker(ABC):
-  
+
+  @property
+  @abstractmethod
+  def asset_value()-> Dict[AssetType, float]:
+      pass
+
+  @abstractmethod
+  def get_asset_value(self, asset_type: AssetType) -> float:
+      pass
+
   @abstractmethod
   def submit_order(self, 
                    *,
@@ -55,11 +64,11 @@ class Broker(ABC):
     pass
 
   @abstractmethod
-  def set_commission(self, asset_type: AssetType, commission: Commission):
+  def set_commission(self, trading_pair: TradingPair, commission: Commission):
     pass
-  
-  @abstractmethod  
-  def get_commission(self, asset_type: AssetType) -> Commission:
+
+  @abstractmethod
+  def get_commission(self, trading_pair: TradingPair) -> Commission:
     pass
   
   @abstractmethod
