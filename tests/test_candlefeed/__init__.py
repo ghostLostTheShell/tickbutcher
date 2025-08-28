@@ -22,8 +22,14 @@ class CandlefeedUnitTest(unittest.TestCase):
                                    min_time_frame=TimeframeType.sec1)
 
     sec = candle_indexer.SOLUSDTP_sec1[0]
+    self.assertEqual(sec['volume'], solusdt_1s.loc[indexs[0], 'volume'])
+    self.assertEqual(sec['open'], solusdt_1s.loc[indexs[0], 'open'])
+    self.assertEqual(sec['high'], solusdt_1s.loc[indexs[0], 'high'])
+    self.assertEqual(sec['low'], solusdt_1s.loc[indexs[0], 'low'])
+    self.assertEqual(sec['close'], solusdt_1s.loc[indexs[0], 'close'])
     
-    
+    #测试不带时间框架
+    sec = candle_indexer.SOLUSDTP[0]
     self.assertEqual(sec['volume'], solusdt_1s.loc[indexs[0], 'volume'])
     self.assertEqual(sec['open'], solusdt_1s.loc[indexs[0], 'open'])
     self.assertEqual(sec['high'], solusdt_1s.loc[indexs[0], 'high'])
