@@ -1,39 +1,58 @@
 
-from typing import TYPE_CHECKING, Dict, List, Optional
-from tickbutcher.commission import Commission
+from typing import TYPE_CHECKING, Dict, List, Optional, overload
+from tickbutcher.brokers.account import Account
+from tickbutcher.brokers.position import Position
+from tickbutcher.brokers.trading_pair import TradingPair
+from tickbutcher.commission import Commission, MakerTakerCommission
 from tickbutcher.order import Order, OrderStatus, OrderType, OrderSide
-from tickbutcher.products import AssetType, FinancialInstrument
-from tickbutcher.trade import Trade, TradeStatus
-from tickbutcher.brokers import Broker, OrderStatusEventCallback, TradeStatusEventCallback, OrderStatusEvent, TradeStatusEvent
+from tickbutcher.brokers import Broker, OrderStatusEventCallback, PositionStatusEvent, OrderStatusEvent, PositionStatusEventCallback
+from tickbutcher.products import AssetType
 
 if TYPE_CHECKING:
   from tickbutcher.contemplationer import Contemplationer
 
 class CommonBroker(Broker):
   contemplationer:'Contemplationer'
-  commission_table:Dict[AssetType, Commission]
-  order_changed_event_listener: List[OrderStatusEventCallback] = None
-  trade_changed_event_listener: List[TradeStatusEventCallback] = None
-  order_list: List[Order] = None
-  order_completed_list: List[Order] = None
-  trade_list: List[Trade] = None
-  asset_value_list: Dict[AssetType, float] = None
+  order_changed_event_listener: List[OrderStatusEventCallback]
+  position_changed_event_listener: List[PositionStatusEventCallback]
+  order_list: List[Order]
+  order_completed_list: List[Order]
+  position_list: List[Position]
+  _accounts:List[Account]
+  tradingPair_commission_map: Dict[TradingPair, Commission]
 
   def __init__(self):
-    self.commission_table = {}
     self.order_list = []
     self.order_completed_list = []
-    self.trade_list = []
+    self.position_list = []
+    self._accounts = []
+    self.default_commission = MakerTakerCommission(0.02, 0.05)
+    self.order_changed_event_listener = []
+    self.position_changed_event_listener = [] 
 
+  def set_commission(self, trading_pair: TradingPair, commission:Commission):
+    self.tradingPair_commission_map[trading_pair] = commission
+  
+  def get_commission(self, trading_pair: TradingPair)->Commission:
+    result = self.tradingPair_commission_map.get(trading_pair)
+    if result is None:
+      return self.tradingPair_commission_map.setdefault(trading_pair, self.default_commission)
+        
+    return result
+
+  @property
+  def accounts(self):
+    return self._accounts
+  
+  def register_account(self):
+    account_id = self.generate_account_id()
+    account = Account(id=account_id, broker=self)
+    self._accounts.append(account)
+    return account
     
   def set_contemplationer(self, contemplationer: 'Contemplationer'):
     self.contemplationer = contemplationer
 
-  def set_commission(self, asset_type: AssetType, commission: Commission):
-    self.commission_table[asset_type] = commission
-  
-  def get_commission(self, asset_type: AssetType) -> Commission:
-    return self.commission_table.get(asset_type)
 
   def trigger_order_changed_event(self, event: OrderStatusEvent):
     """
@@ -42,96 +61,116 @@ class CommonBroker(Broker):
     for listener in self.order_changed_event_listener:
       listener(event) 
 
-  def trigger_trade_changed_event(self, event: TradeStatusEvent):
-    """
-    触发事件
-    """
-    for listener in self.order_changed_event_listener:
-      listener(event)
-
-  def trigger_trade_changed_event(self, event: TradeStatusEvent):
-    """
-    触发事件
-    """
-    for listener in self.trade_changed_event_listener:
-      listener(event)
-
-  def add_order_changed_event_listener(self, listener):
+  def add_order_changed_event_listener(self, listener: OrderStatusEventCallback):
     """
     添加事件监听器
     """
     self.order_changed_event_listener.append(listener)
 
-  def remove_trade_changed_event_listener(self,listener):
+
+  def remove_order_changed_event_listener(self, listener: OrderStatusEventCallback):
     """
     移除事件监听器
     """
     self.order_changed_event_listener.remove(listener)
 
-  def get_order_list(self)->List[Order]:
+
+  def trigger_position_changed_event(self, event: PositionStatusEvent):
+    """
+    触发事件
+    """
+    for listener in self.position_changed_event_listener:
+      listener(event)
+
+  def add_position_changed_event_listener(self, listener: PositionStatusEventCallback):
+    """
+    添加事件监听器
+    """
+    self.position_changed_event_listener.append(listener)
+
+  def remove_position_changed_event_listener(self, listener: PositionStatusEventCallback):
+    """
+    移除事件监听器
+    """
+    self.position_changed_event_listener.remove(listener)
+    
+    
+
+  def get_order_list(self, account: Account, 
+                     *, 
+                     trading_pairs: Optional[List[TradingPair]]=None,
+                     ) -> List[Order]:
+    
+    
     return []
-  
-  def get_trade_list(self)->List[Trade]:
+
+  def get_position_list(self, 
+                        account: Account, 
+                        *, 
+                        trading_pairs: Optional[List[TradingPair]]=None, # 过滤交易对
+                        ) -> List[Position]:
     return []
   
   def next(self):
     pass
   
-  def deal_order(self, order: Order):
-    """处理订单"""
-    pass
   
-  def submit_order(self, 
-                   *,
-                   financial_type:FinancialInstrument, 
-                   order_option_type:OrderType,
-                   side:OrderSide,
-                   leverage:Optional[int]=None,
-                   quantity:Optional[int]=None,
-                   price:Optional[int]=None,
-                   trade:Optional[Trade]=None):
+
+
+  
+  def handle_market_order(self, order: Order):
+    trading_pair = order.trading_pair
+    account =order.account
     
-    if order_option_type is OrderType.MarketOrder:
-      current = self.contemplationer.candle[0, financial_type.id]
-      #立即成交
-      order = Order(financial_type=financial_type,
-                    type=order_option_type,
-                    side=side,
-                    leverage=leverage,
-                    quantity=quantity,
-                    price=None,
-                    id=self.generate_order_id())
+    current = self.contemplationer.candle[0, order.trading_pair.id]
+    order.execution_price = current.close
+    order.execution_quantity = order.quantity
+    # 创建仓位
+    position = Position(account=account, trading_pair=trading_pair, quantity=order.execution_quantity)
+    self.position_list.append(position)
 
-      order.status = OrderStatus.Created
-      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
-      order.status = OrderStatus.Completed
-      order.execution_price = current.close
-      order.add_execution_quantity(current.volume)
-      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Completed))
-      self.order_completed_list.append(order)
+    # 设置asset_value_list
+    match trading_pair.base.type:
+      case AssetType.PerpetualSwap:
+        pass
       
-      trade = Trade(id=self.generate_trade_id(),
-                    financial_type=financial_type)
-      self.trade_list.append(trade)
-      trade.add_order(order)
-      self.trigger_trade_changed_event(TradeStatusEvent(trade=trade, event_type=TradeStatus.Open))
+      case _:
+        order.asset_value_list = [current.close * order.quantity]
 
 
-    if order_option_type is OrderType.LimitOrder:
-      #限价单
-      order = Order(financial_type=financial_type,
-                    type=order_option_type,
-                    side=side,
-                    leverage=leverage,
-                    quantity=quantity,
-                    price=price,
-                    
-                    id=self.generate_order_id())
       
-      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
-      self.order_list.append(order)
-      self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Submitted))
+      
+  @overload
+  def submit_order(self,
+                  *,
+                  trading_pair: TradingPair,
+                  order_type: OrderType,
+                  side: OrderSide,
+                  quantity: Optional[int] = None,
+                  price: Optional[int] = None,
+                  ):
+    ...  
+  def submit_order(self, *args, **kwargs):
+    # 创建订单
+    
+    order = Order(**kwargs)
+    order.status = OrderStatus.Created
+    order.created_at = self.contemplationer.current_time
+    self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
+    self.order_list.append(order)
+    
+    
 
+    if order.order_type is OrderType.MarketOrder:
+      # 市价立即成交
+      self.handle_market_order(order)
+      
+    elif order.order_type is OrderType.StopOrder:
+      #止损单
+      self.handle_stop_order(order)
+
+    else:
+      raise ValueError(f"不支持的订单类型: {order.order_type}")
 
   
   def generate_order_id(self) -> int:
@@ -140,10 +179,18 @@ class CommonBroker(Broker):
       return 0
     else:
       return self.order_list[-1] + 1
-    
-  def generate_trade_id(self) -> int:
+
+  def generate_position_id(self) -> int:
     """生成交易id"""
-    if len(self.trade_list) == 0:
+    if len(self.position_list) == 0:
       return 0
     else:
-      return self.trade_list[-1] + 1
+      return self.position_list[-1] + 1
+    
+    
+  def generate_account_id(self) -> int:
+    """生成账户id"""
+    if len(self._accounts) == 0:
+      return 0
+    else:
+      return self._accounts[-1] + 1

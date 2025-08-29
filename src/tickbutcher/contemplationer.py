@@ -37,6 +37,7 @@ class Contemplationer:
 
   def add_strategy(self, strategy:Type['Strategy'], *args:P.args, **kwargs:P.kwargs) -> None:
     new_strategy = strategy(*args, **kwargs)
+    new_strategy.add_broker(self.brokers)  # 目前只支持一个broker
     self.strategys.append(new_strategy)
 
   def add_kline(self, *, candleFeed:CandleFeed):
@@ -52,12 +53,7 @@ class Contemplationer:
 
   def run(self):
     time_interval = self.get_time_interval()
-    
-    if self.broker is None:
-      raise ValueError("No broker set for contemplationer")
-    else:
-      for strategy in self.strategys:
-        strategy.set_broker(self.broker)
+            
 
     for current_time in time_interval:
       self.set_current_time(current_time)

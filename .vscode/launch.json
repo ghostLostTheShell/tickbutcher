@@ -4,6 +4,7 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+
     {
       "name": "[test] PandasCandleFeedUnitTest",
       "type": "debugpy",
@@ -63,9 +64,21 @@
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",
-      "args": [
-        "tests.test_contemplationer.ContemplationerUnitTest"
-      ]
+      "args": ["tests.test_contemplationer.ContemplationerUnitTest"]
+    },
+    {
+      "name": "[test] FinancialInStrumentUnitTest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_financialIn_strument.FinancialInStrumentUnitTest"]
+    },
+    {
+      "name": "test] CommonBrokerTest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_brokers.common_broker.CommonBrokerTest"]
     }
   ]
 }

@@ -5,7 +5,6 @@ from typing import Dict, List, Optional, Tuple
 from pandas import Series
 
 from tickbutcher.brokers.trading_pair import TradingPair
-from tickbutcher.products import FinancialInstrument
 
 
 class TimeframeType(enum.Enum):
@@ -38,7 +37,21 @@ class CandleIndexer:
 
 
     def __getattr__(self, name: str):
-      # bct_m15[-1]
+      """
+      动态解析属性名以获取特定交易对和时间周期的K线数据。
+
+      通过属性名格式 '<financial_type_id>_<timeframe>' 或 '<financial_type_id>'，
+      可以访问指定交易对和时间周期的K线数据。当只提供交易对ID时，默认使用最小时间周期。
+
+      参数:
+        name (str): 属性名，格式为 '<financial_type_id>_<timeframe>' 或 '<financial_type_id>'。
+
+      返回:
+        self: 返回自身实例，并更新 `timeframe` 和 `candlefeed` 属性。
+
+      异常:
+        ValueError: 当时间周期无效、交易对ID不存在或未找到对应K线数据时抛出。
+      """
       financial_type_id = "" 
       timeframe = ""
       
@@ -54,10 +67,10 @@ class CandleIndexer:
       except KeyError:
         raise ValueError(f"Invalid timeframe: {timeframe}")
 
-
-      for trading_pair in self.trading_pair_candle_table.keys():
-        if trading_pair.id == financial_type_id:
-          self.candlefeed = self.trading_pair_candle_table[trading_pair]
+      tp = TradingPair.get_trading_pair(financial_type_id)
+      self.candlefeed = self.trading_pair_candle_table[tp]
+      if self.candlefeed is None:
+        raise ValueError(f"No candle feed available for trading pair id: {financial_type_id}")  
 
       return self
 

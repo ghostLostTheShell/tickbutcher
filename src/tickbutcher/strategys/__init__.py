@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 from tickbutcher.brokers import Broker
 
 class Strategy(ABC):
@@ -8,7 +9,7 @@ class Strategy(ABC):
     pass
 
   @abstractmethod
-  def set_broker(self, broker:Broker):
+  def add_broker(self, broker:List[Broker]):
     pass
 
 

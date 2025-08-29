@@ -1,7 +1,10 @@
 import enum
-from tickbutcher.products import FinancialInstrument
+from typing import Optional, TYPE_CHECKING
 
 
+if TYPE_CHECKING:
+  from tickbutcher.brokers.account import Account
+  from tickbutcher.brokers.trading_pair import TradingPair
 class OrderType(enum.Enum):
   """订单操作类型"""
   MarketOrder = 1  # 市价单
@@ -39,31 +42,37 @@ class OrderSide(enum.Enum):
 
 class Order():
   id: int
-  financial_type: FinancialInstrument
-  quantity: float # 下单数量
-  side: OrderSide
-  price: float # 下单价格
-  order_option_type: OrderType
-  
-  execution_price:float   # 成交价格
-  execution_quantity:float  # 成交数量 
-  status:OrderStatus
+  trading_pair: 'TradingPair' # 交易对
+  quantity: float           # 下单数量
+  side: OrderSide           # 买卖方向
+  price: float              # 下单价格
+  order_type: OrderType     # 订单类型
+  execution_price:float     # 成交价格
+  execution_quantity:float  # 成交数量
+  status:OrderStatus        # 订单状态
+  created_at: int           # 订单创建时间
+  completed_at: int         # 订单结束时间
+  account: 'Account'          # 该订单所属的账户
+
 
   def __init__(self, 
-               financial_type:FinancialInstrument, 
+               *,
+               trading_pair:'TradingPair',
                quantity:int, 
                side: OrderSide,
-               price:float, 
-               order_option_type: OrderType):
-    
-    self.financial_type = financial_type    ### 标的类型 symbol 标的， id， 产品类型 （期货or股票or币... ）
-    self.quantity = quantity                ### 数量
-    self.price = price                      ### 价格
-    self.order_option_type = order_option_type  ### 订单操作类型
-    self.filled_quantity = 0.0                  # 已成交数量，被市场接受的数量
-    self.remaining_quantity = quantity           # 未成交数量，未市场接受的数量
-    self.side = side                             # buy or sell
-    self.status = OrderStatus.Created  # 当前的订单状态，实例化就为Create
+               order_type: OrderType,
+               price: Optional[float] = None,
+               account: 'Account'):
+
+      self.trading_pair = trading_pair
+      self.quantity = quantity
+      self.price = price
+      self.order_type = order_type
+      self.execution_price = 0.0
+      self.execution_quantity = 0.0
+      self.status = OrderStatus.Created
+      self.side = side
+      self.account = account
 
   
   def is_created(self):
