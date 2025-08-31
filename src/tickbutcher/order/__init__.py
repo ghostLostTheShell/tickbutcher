@@ -5,6 +5,7 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
   from tickbutcher.brokers.account import Account
   from tickbutcher.brokers.trading_pair import TradingPair
+  from tickbutcher.products import FinancialInstrument
 class OrderType(enum.Enum):
   """订单操作类型"""
   MarketOrder = 1  # 市价单
@@ -67,6 +68,8 @@ class Order():
   trading_mode:TradingMode    #交易模式
   pos_side:Optional[PosSide]    #仓位方向
   reduce_only:Optional[float]   #仅减仓
+  commission:float              #手续费
+  comm_settle_asset:'FinancialInstrument' # 手续费结算资产
 
   def __init__(self, 
                *,
@@ -123,3 +126,10 @@ class Order():
   def is_padding(self):
     """判断当前order是否处于市商撮合的等待状态"""
     return self.status == OrderStatus.Padding
+  
+  def set_commission(self, 
+                     commission:float, 
+                     settle_asset:'FinancialInstrument'):
+    self.commission = commission
+    self.comm_settle_asset = settle_asset
+    

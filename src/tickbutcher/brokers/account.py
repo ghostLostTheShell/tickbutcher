@@ -38,28 +38,28 @@ class Account(object):
 
   def get_margin_type(self, trading_pair: 'TradingPair') -> 'MarginType':
     if trading_pair not in self.trading_pair_margin_type:
-      self.trading_pair_margin_type[trading_pair] = 'MarginType.Isolated'
+      self.trading_pair_margin_type[trading_pair] = MarginType.Isolated
 
-    return self.trading_pair_margin_type.get(trading_pair)
+    return self.trading_pair_margin_type.get(trading_pair, MarginType.Isolated)
   
 
-  def set_leverage(self, leverage: float, trading_pair: 'TradingPair'):
+  def set_leverage(self, leverage: int, trading_pair: 'TradingPair'):
     self.trading_pair_leverage[trading_pair] = leverage
 
   def get_leverage(self, trading_pair: 'TradingPair') -> int:
-    if trading_pair not in self.trading_pair_leverage:
+    if trading_pair not in self.trading_pair_leverage.keys():
       self.trading_pair_leverage[trading_pair] = self.default_leverage
       
-    return self.trading_pair_leverage.get(trading_pair)  
+    return self.trading_pair_leverage.get(trading_pair, self.default_leverage)  
 
-  def deposit(self, asset_type: 'AssetType', amount: float):
+  def deposit(self, amount: float, asset_type: 'AssetType', ):
     """
-    存款
+    存入
     """
     self.asset_value_map[asset_type] = self.asset_value_map.get(asset_type, 0) + amount
 
-  def withdraw(self, asset_type: 'AssetType', amount: float):
+  def withdraw(self, amount: float, asset_type: 'AssetType', ):
     """
-    取款
+    取出
     """
     self.asset_value_map[asset_type] = self.asset_value_map.get(asset_type, 0) - amount

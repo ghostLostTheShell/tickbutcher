@@ -1,4 +1,4 @@
-from typing import Dict, TypeVar
+from typing import Dict, TypeVar, Any
 from tickbutcher.products import FinancialInstrument
 
 
@@ -9,14 +9,16 @@ class TradingPair():
   symbol:str                # 交易对符号，如 BTC/USDT
   id:str                    # 交易对ID
 
-  __instances: Dict[str, B] = {}
+  __instances: Dict[str, 'TradingPair'] = {}
 
   #每次创建新实例时，把实例根据id保存起来
-  def __new__(cls,*args, **kwargs) -> B:
-    id = kwargs.get("id")
-    base = kwargs.get("base")
-    quote = kwargs.get("quote")
-    symbol = kwargs.get("symbol")
+  def __new__(cls,
+              *args: Any, 
+              **kwargs: Any) -> 'TradingPair':
+    id:str = kwargs.get("id")     # type: ignore
+    base:FinancialInstrument = kwargs.get("base")     # type: ignore
+    quote:FinancialInstrument = kwargs.get("quote")   # type: ignore
+    symbol:str = kwargs.get("symbol") # type: ignore
     
     if id not in cls.__instances.keys():
       # 如果没有实例，则创建一个新的并存储到字典中
@@ -38,7 +40,7 @@ class TradingPair():
                base: FinancialInstrument, 
                quote: FinancialInstrument,
                symbol: str,
-               id: str) -> object:
+               id: str):
       self.base = base
       self.quote = quote
       self.symbol = symbol

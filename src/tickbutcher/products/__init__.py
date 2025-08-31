@@ -1,6 +1,6 @@
 
 from enum import Enum
-from typing import Dict, List, TypeVar
+from typing import Dict, TypeVar
 
 class AssetType(Enum):
   STOCK = 1 #股票
@@ -18,14 +18,14 @@ class FinancialInstrument():
     String     symbol  标的
     AssetType  type    市场产品种类 
   """
-  __all__symbol_instances_table:Dict[str, B] = {}
+  __all__symbol_instances_table:Dict[str, 'FinancialInstrument'] = {}
   
   symbol:str
   type:AssetType
 
-  def __new__(cls, *args, **kwargs) -> B:
-    symbol = kwargs.get("symbol")
-    asset_type = kwargs.get("type")
+  def __new__(cls, *args: object, **kwargs: object) -> "FinancialInstrument":
+    symbol:str = kwargs.get("symbol") # type: ignore
+    asset_type:AssetType = kwargs.get("type") # type: ignore
     if symbol not in cls.__all__symbol_instances_table.keys():
         # 如果没有实例，则创建一个新的并存储到字典中
         instance = super().__new__(cls)
@@ -38,6 +38,6 @@ class FinancialInstrument():
 
     return cls.__all__symbol_instances_table[symbol]
 
-  def __init__(self, *, symbol: str, type: AssetType) -> object:
+  def __init__(self, *, symbol: str, type: AssetType): # type: ignore
     self.symbol = symbol
     self.type = type
