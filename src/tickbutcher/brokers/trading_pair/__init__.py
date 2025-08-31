@@ -4,14 +4,10 @@ from tickbutcher.products import FinancialInstrument
 
 B = TypeVar("B", bound="TradingPair")
 class TradingPair():
-  """
-    String     base  
-    String     quote  计价货币
-  """
-  base:FinancialInstrument #基础货币
+  base:FinancialInstrument  #基础货币
   quote:FinancialInstrument #计价货币
-  symbol:str      # 交易对符号，如 BTC/USDT
-  id:str          # 交易对ID
+  symbol:str                # 交易对符号，如 BTC/USDT
+  id:str                    # 交易对ID
 
   __instances: Dict[str, B] = {}
 

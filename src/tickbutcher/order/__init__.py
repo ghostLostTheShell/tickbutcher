@@ -38,31 +38,48 @@ class OrderStatus(enum.Enum):
 class OrderSide(enum.Enum):
   Buy = 0
   Sell = 1
-
+  
+class PosSide(enum.Enum):
+  """订单操作仓位方向"""
+  Long = 0
+  Short = 1
+  NET = 3
+  
+class TradingMode(enum.Enum):
+  """交易模式"""
+  Isolated = 0
+  Cross = 1
+  Cash = 2
 
 class Order():
   id: int
   trading_pair: 'TradingPair' # 交易对
   quantity: float           # 下单数量
   side: OrderSide           # 买卖方向
-  price: float              # 下单价格
+  price: Optional[float]    # 委托价格
   order_type: OrderType     # 订单类型
-  execution_price:float     # 成交价格
-  execution_quantity:float  # 成交数量
-  status:OrderStatus        # 订单状态
-  created_at: int           # 订单创建时间
-  completed_at: int         # 订单结束时间
+  execution_price:float       # 成交价格
+  execution_quantity:float    # 成交数量
+  status:OrderStatus          # 订单状态
+  created_at: int             # 订单创建时间
+  completed_at: int           # 订单结束时间
   account: 'Account'          # 该订单所属的账户
-
+  trading_mode:TradingMode    #交易模式
+  pos_side:Optional[PosSide]    #仓位方向
+  reduce_only:Optional[float]   #仅减仓
 
   def __init__(self, 
                *,
+               trading_mode:TradingMode,
                trading_pair:'TradingPair',
-               quantity:int, 
+               quantity:float, 
                side: OrderSide,
                order_type: OrderType,
-               price: Optional[float] = None,
-               account: 'Account'):
+               account: 'Account',
+               pos_side:Optional[PosSide]   =None,
+               price: Optional[float]       = None,
+               reduce_only:Optional[float]  = None
+               ):
 
       self.trading_pair = trading_pair
       self.quantity = quantity
@@ -73,7 +90,9 @@ class Order():
       self.status = OrderStatus.Created
       self.side = side
       self.account = account
-
+      self.trading_mode=trading_mode
+      self.pos_side = pos_side
+      self.reduce_only=reduce_only
   
   def is_created(self):
     """判断当前的order状态是否还有机会进行处理"""

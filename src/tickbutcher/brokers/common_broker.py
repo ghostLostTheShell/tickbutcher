@@ -1,5 +1,5 @@
 
-from typing import TYPE_CHECKING, Dict, List, Optional, overload
+from typing import TYPE_CHECKING, Dict, List, Optional
 from tickbutcher.brokers.account import Account
 from tickbutcher.brokers.position import Position
 from tickbutcher.brokers.trading_pair import TradingPair
@@ -10,7 +10,7 @@ from tickbutcher.products import AssetType
 
 if TYPE_CHECKING:
   from tickbutcher.contemplationer import Contemplationer
-
+  from tickbutcher.order import PosSide,TradingMode
 class CommonBroker(Broker):
   contemplationer:'Contemplationer'
   order_changed_event_listener: List[OrderStatusEventCallback]
@@ -116,17 +116,25 @@ class CommonBroker(Broker):
   
   
 
-
   
-  def handle_market_order(self, order: Order):
-    trading_pair = order.trading_pair
-    account =order.account
+  def handle_ps_market_order(self, order: Order):
+    """处理永续合约市价单"""
     
+    trading_pair = order.trading_pair
+    _account =order.account
     current = self.contemplationer.candle[0, order.trading_pair.id]
     order.execution_price = current.close
     order.execution_quantity = order.quantity
+    #计算本次交易的手续费
+    _commission = self.get_commission(trading_pair)
+
+    pass
+
+    #入账
+    
     # 创建仓位
-    position = Position(account=account, trading_pair=trading_pair, quantity=order.execution_quantity)
+    position = Position(id=self.generate_position_id(),
+                        tradingPair=trading_pair)
     self.position_list.append(position)
 
     # 设置asset_value_list
@@ -135,42 +143,56 @@ class CommonBroker(Broker):
         pass
       
       case _:
-        order.asset_value_list = [current.close * order.quantity]
+        pass
 
 
-      
-      
-  @overload
-  def submit_order(self,
-                  *,
+  def submit_order(self, *,
+                  account: 'Account',
                   trading_pair: TradingPair,
                   order_type: OrderType,
                   side: OrderSide,
-                  quantity: Optional[int] = None,
+                  trading_mode:'TradingMode',
+                  quantity: float,
+                  pos_side: Optional[PosSide]=None,
                   price: Optional[int] = None,
-                  ):
-    ...  
-  def submit_order(self, *args, **kwargs):
+                  reduce_only:Optional[bool]=None
+                   ) -> None:
     # 创建订单
+
+    order = Order(
+      trading_mode=trading_mode,
+      trading_pair=trading_pair,
+      quantity=quantity,
+      side=side,
+      order_type=order_type,
+      price=price,
+      account=account,
+      pos_side=pos_side,
+      reduce_only=reduce_only,
+    )
     
-    order = Order(**kwargs)
     order.status = OrderStatus.Created
     order.created_at = self.contemplationer.current_time
+    order.set_id(self.generate_order_id())
     self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
     self.order_list.append(order)
     
     
-
-    if order.order_type is OrderType.MarketOrder:
-      # 市价立即成交
-      self.handle_market_order(order)
+    # 检查订单信息是否有错误
+    pass
+    # 
+    # 处理交易
+    match (order.trading_pair.base.type, order.order_type):
+      case (AssetType.PerpetualSwap, OrderType.MarketOrder):
+        self.handle_ps_market_order(order)
+      case (AssetType.PerpetualSwap, OrderType.LimitOrder):
+        pass
       
-    elif order.order_type is OrderType.StopOrder:
-      #止损单
-      self.handle_stop_order(order)
+      case _:
+        raise ValueError(f"不支持的订单类型: {order.order_type} for {order.trading_pair.base.type}")
 
-    else:
-      raise ValueError(f"不支持的订单类型: {order.order_type}")
+
+
 
   
   def generate_order_id(self) -> int:
@@ -178,14 +200,14 @@ class CommonBroker(Broker):
     if len(self.order_list) == 0:
       return 0
     else:
-      return self.order_list[-1] + 1
+      return self.order_list[-1].id + 1
 
   def generate_position_id(self) -> int:
     """生成交易id"""
     if len(self.position_list) == 0:
       return 0
     else:
-      return self.position_list[-1] + 1
+      return self.position_list[-1].id + 1
     
     
   def generate_account_id(self) -> int:
@@ -193,4 +215,4 @@ class CommonBroker(Broker):
     if len(self._accounts) == 0:
       return 0
     else:
-      return self._accounts[-1] + 1
+      return self._accounts[-1].id + 1

@@ -2,12 +2,14 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TYPE_CHECKING, List, Optional
 
+from tickbutcher.order import PosSide
+
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
   from tickbutcher.contemplationer import Contemplationer
   from tickbutcher.brokers.account import Account
   from tickbutcher.brokers.position import Position
-  from tickbutcher.order import Order, OrderType, OrderSide, OrderStatus
+  from tickbutcher.order import Order, OrderType, OrderSide, OrderStatus,TradingMode
   from tickbutcher.commission import Commission
   from tickbutcher.brokers.trading_pair import TradingPair
   
@@ -39,23 +41,27 @@ class Broker(ABC):
 
   @property
   @abstractmethod
-  def accounts()-> List['Account']:
+  def accounts(self)-> List['Account']:
       pass
 
 
   @abstractmethod
   def submit_order(self, 
                    *,
-                   symbol:str, 
-                   type:'OrderType',
-                   side:'OrderSide' ,
-                   account:'Account',
-                   leverage:Optional[int]=None,
-                   quantity:Optional[int]=None,
-                   price:Optional[int]=None
-                   ):
-    """执行买入操作
-
+                  account: 'Account',
+                  trading_pair: TradingPair,
+                  order_type: OrderType,
+                  side: OrderSide,
+                  trading_mode:'TradingMode',
+                  quantity: float,
+                  pos_side: Optional[PosSide]=None,
+                  price: Optional[int] = None,
+                  reduce_only:Optional[bool]=None
+                  ) -> None:
+    """
+    
+    
+    
     如果 OrderType 为市价单，则直接以当前市场价格下单
     如果 OrderType 为限价单，参数 price 不能为空
     """
