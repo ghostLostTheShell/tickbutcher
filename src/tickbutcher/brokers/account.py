@@ -2,12 +2,14 @@
 from typing import Dict, List, TYPE_CHECKING
 
 
+
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
   from tickbutcher.brokers import Broker
   from tickbutcher.brokers.position import Position
   from tickbutcher.brokers.trading_pair import TradingPair
   from tickbutcher.order import Order
+  from tickbutcher.order import PosSide, TradingMode
   from tickbutcher.brokers.margin import MarginType
   from tickbutcher.products import AssetType
 
@@ -63,3 +65,16 @@ class Account(object):
     取出
     """
     self.asset_value_map[asset_type] = self.asset_value_map.get(asset_type, 0) - amount
+
+  def get_open_position(self, 
+                   trading_pair: 'TradingPair', 
+                   *, 
+                   trading_mode: 'TradingMode', 
+                   pos_side: 'PosSide'):
+    for position in self.position_list:
+      if position.is_open() and position.trading_pair == trading_pair and position.trading_mode is trading_mode and position.pos_side is pos_side:
+        return position
+    return None
+
+  def add_position(self, position: 'Position'):
+    self.position_list.append(position)

@@ -8,17 +8,17 @@ if TYPE_CHECKING:
   from tickbutcher.products import FinancialInstrument
 class OrderType(enum.Enum):
   """订单操作类型"""
-  MarketOrder = 1  # 市价单
-  LimitOrder = 2 # 限价单
-  StopOrder = 3
-  StopLimitOrder = 4
-  TrailingStopOrder = 5
-  Iceberg_Order = 6
-  FillOrKillOrder = 7
-  ImmediateOrCancelOrder = 8
-  PostOnlyOrder = 9
-  OneCancelsTheOtherOrder = 10
-  TWAPOrder = 11
+  Market = 1  # 市价单
+  Limit = 2 # 限价单
+  Stop = 3
+  StopLimit = 4
+  TrailingStop = 5
+  Iceberg = 6
+  FillOrKill = 7
+  ImmediateOrCancel = 8
+  PostOnly = 9
+  OneCancelsTheOther = 10
+  TWAP = 11
 
 
 class OrderStatus(enum.Enum):

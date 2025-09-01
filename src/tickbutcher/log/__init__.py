@@ -29,9 +29,9 @@ def file_logger_enable():
   if file_handler is None:
     init_file_handler()
   
-  logger.addHandler(file_handler)
+  logger.addHandler(file_handler) # type: ignore
 
 def file_logger_disable():
-    logger.removeHandler(file_handler)
+    logger.removeHandler(file_handler) # type: ignore
 
 __all__ = ["logger"]
