@@ -1,9 +1,8 @@
-from calendar import c
 from datetime import datetime
 import unittest
 from datetime import datetime, timedelta, timezone as TimeZone
 from tickbutcher.brokers.trading_pair import common as common_trading_pair
-from tests.dataset import get_sol_usdt_1s_and_1min, sol
+from tests.dataset import get_sol_usdt_1s_and_1min
 from tickbutcher.candlefeed import CandleIndexer, TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import load_dataframe_from_sql, PandasCandleFeed
 
@@ -101,8 +100,8 @@ class CandlefeedUnitTest(unittest.TestCase):
   
   def test_klines_for_timeframe(self):
     """测试添加的k线数据的有效性"""
-    test_start_date = datetime.fromisoformat("2025-01-01T00:00:00+00:00:00")
-    end_start_date = datetime.fromisoformat("2025-01-10T00:00:00+00:00:00")
+    _test_start_date = datetime.fromisoformat("2025-01-01T00:00:00+00:00:00")
+    _end_start_date = datetime.fromisoformat("2025-01-10T00:00:00+00:00:00")
 
     # sol_usdt_1s = load_data_from_sql(inst_id='SOL/USDT', timeframe='1s', start_date=test_start_date, end_date=end_start_date, data_source_url="sqlite:///./tmp/app.db")
     # sol_usdt_1m = load_data_from_sql(inst_id='SOL/USDT', timeframe='1m', start_date=test_start_date, end_date=end_start_date, data_source_url="sqlite:///./tmp/app.db")

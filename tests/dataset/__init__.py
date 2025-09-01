@@ -25,3 +25,5 @@ def get_sol_usdt_1s_and_1min():
                                           data_source_url="sqlite:///./tmp/app.db")
   
   return (sol_usdt_1s_dataframe, sol_usdt_1m_dataframe)
+
+__all__ = ['sol', 'btc', 'get_sol_usdt_1s_and_1min']
