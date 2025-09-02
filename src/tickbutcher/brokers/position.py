@@ -2,15 +2,12 @@
 import enum
 from typing import TYPE_CHECKING
 
-from tickbutcher.order import OrderSide
-
+from tickbutcher.order import *
+from tickbutcher.products import AssetType
 
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
   from tickbutcher.brokers.trading_pair import TradingPair
-  from tickbutcher.order import Order
-  from tickbutcher.order import TradingMode
-  from tickbutcher.order import PosSide
   from tickbutcher.products import FinancialInstrument
 class PositionStatus(enum.Enum):
   Active = 0  #持仓中
@@ -51,6 +48,11 @@ class Position(object):
     self.status = PositionStatus.Active
     self.pos_side = pos_side
     self.trading_mode = trading_mode
+    self.amount = 0.0
+    self.entry_price = 0.0
+    self.mark_price = 0.0
+    self.buy_orders = []
+    self.sell_orders = []
 
   def set_trading_pair(self, trading_pair: 'TradingPair'):
     self.trading_pair = trading_pair
@@ -69,7 +71,10 @@ class Position(object):
 
     match (self.pos_side, order.side):
       case (PosSide.Long, OrderSide.Buy):
-        self.amount = sum(o.execution_quantity for o in self.buy_orders)
+        #
+        # 计算持仓均价
+        # 采用移动加权平均法(加上手续费)
+        self.amount = sum(o.execution_quantity for o in self.buy_orders) - sum(o.commission for o in self.buy_orders if o.comm_settle_asset is self.base)
         self.entry_price = sum(o.execution_price * o.execution_quantity for o in self.buy_orders) / self.amount
 
       case (PosSide.Long, OrderSide.Sell):
@@ -77,8 +82,14 @@ class Position(object):
         # 判断仓位是否是全平
         if order.execution_quantity >= self.amount:
           self.status = PositionStatus.Closed
-          
-                  
+          self.amount = 0.0
+
+        else:
+          pass
+        
+        self.realized_pnl = (order.execution_price - self.entry_price) * order.execution_quantity - order.commission
+        
+        
         
       case (PosSide.Short, OrderSide.Buy):
         self.amount = sum(o.execution_quantity for o in self.buy_orders)
@@ -100,19 +111,33 @@ class Position(object):
     return self.status in (PositionStatus.Closed, PositionStatus.ForcedLiq)
 
   def add_margin(self, amount: float):
+    if self.trading_mode != TradingMode.Isolated:
+      raise ValueError("Can only add margin in isolated mode")
     self.margin += amount
     
   def reduce_margin(self, amount: float):
+    if self.trading_mode != TradingMode.Isolated:
+      raise ValueError("Can only reduce margin in isolated mode")
     self.margin -= amount
     
-  #计算盈利
-  def calculate_profit(self, current_price: float) -> float:
-    if self.pos_side == PosSide.Long:
-      return (current_price - self.entry_price) * self.amount
-    elif self.pos_side == PosSide.Short:
-      return (self.entry_price - current_price) * self.amount
-    return 0.0
+ 
+  def calculate_unrealized_pnl(self, current_price: float) -> float:
+    """
+    计算未实现盈亏
+    """
+    if self.status != PositionStatus.Active:
+      return 0.0
 
+    match (self.base.type, self.pos_side):
+
+      case (AssetType.PerpetualSwap, PosSide.Long):
+          return (current_price - self.entry_price) * self.amount - self.ps_funding
+        
+      case (AssetType.PerpetualSwap, PosSide.Short):
+          return (self.entry_price - current_price) * self.amount - self.ps_funding
+      
+      case _:
+        return (current_price - self.entry_price) * self.amount
 
   def calculate_mark_price(self, current_price: float) -> float:
     return self.entry_price
@@ -123,4 +148,4 @@ class Position(object):
     elif self.pos_side == PosSide.Short:
       return self.entry_price * (1 + 1 / self.leverage)
     return 0.0
-  
+

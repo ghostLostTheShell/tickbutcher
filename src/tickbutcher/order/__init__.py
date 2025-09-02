@@ -132,4 +132,5 @@ class Order():
                      settle_asset:'FinancialInstrument'):
     self.commission = commission
     self.comm_settle_asset = settle_asset
-    
+
+__ALL__ = ['Order', 'OrderType', 'OrderSide', 'OrderStatus', 'PosSide', 'TradingMode', 'PositionStatus', 'Position']

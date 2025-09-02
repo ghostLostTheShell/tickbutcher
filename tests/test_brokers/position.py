@@ -16,10 +16,10 @@ class PositionTest(unittest.TestCase):
     """测试永续合约的逐仓仓位"""
     _sol_usdt_1s_dataframe, _ = get_sol_usdt_1s_and_1min()  # 预加载数据集
     
-    pos = Position(123, base=comm_fi.SOL, pos_side=PosSide.Long, trading_mode=TradingMode.Isolated)
+    pos = Position(1, base=comm_fi.SOL, pos_side=PosSide.Long, trading_mode=TradingMode.Isolated)
 
     mock_account = Mock(spec=Account)
-    mock_account.id = 4545
+    mock_account.id = 4
 
     order = Order(trading_mode=TradingMode.Isolated,
                   trading_pair=common_tp.SOLUSDTP,

@@ -79,6 +79,13 @@
       "request": "launch",
       "module": "unittest",
       "args": ["tests.test_brokers.common_broker.CommonBrokerTest"]
+    },
+    {
+      "name": "[test] PositionTest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_brokers.position.PositionTest"]
     }
   ]
 }
