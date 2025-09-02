@@ -74,8 +74,8 @@ class Position(object):
         #
         # 计算持仓均价
         # 采用移动加权平均法(加上手续费)
-        self.amount = sum(o.execution_quantity for o in self.buy_orders) - sum(o.commission for o in self.buy_orders if o.comm_settle_asset is self.base)
-        self.entry_price = sum(o.execution_price * o.execution_quantity for o in self.buy_orders) / self.amount
+        self.amount = sum((o.execution_quantity - o.commission if o.comm_settle_asset is self.base else o.execution_quantity) for o in self.buy_orders)
+        self.entry_price = sum(o.execution_price * (o.execution_quantity - o.commission  if o.comm_settle_asset is self.base else o.execution_quantity ) for o in self.buy_orders) / self.amount
 
       case (PosSide.Long, OrderSide.Sell):
         # 计算平仓
