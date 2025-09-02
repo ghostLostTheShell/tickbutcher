@@ -1,6 +1,6 @@
 
 import enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from tickbutcher.order import *
 from tickbutcher.products import AssetType
@@ -13,6 +13,10 @@ class PositionStatus(enum.Enum):
   Active = 0  #持仓中
   Closed = 1  #已平仓
   ForcedLiq = 2  #强制平仓（ForcedLiquidation）
+
+class SettlementRecord():
+  pass
+
 
 class Position(object):
   """仓位信息 仓位信息是指在Broker处理完毕订单数据后返回仓位信息"""
@@ -27,13 +31,14 @@ class Position(object):
   entry_price: float  # 开仓均价/持仓均价
   mark_price: float  # 标记价格
   unrealized_pnl: float  # 未实现盈亏
-  realized_pnl: float  # 已实现盈亏
+  # realized_pnl: float  # 已实现盈亏
   leverage: float  # 杠杆倍数
   margin: float  # 保证金
   liq_price: float  # 强平价格/爆仓价(liquidation_price)
   pos_side: 'PosSide'  # 持仓方向，LONG (多头), SHORT (空头), 或 单方向仓
   trading_mode: 'TradingMode'  # 交易模式，逐仓或全仓,现金
   ps_funding: float  # 永续合约的资金费用
+  settlement_records: Dict['Order', float]  # 结算记录, key是订单，value是结算金额(持仓均价)
 
   def __init__(self, 
                id: int,
@@ -53,6 +58,7 @@ class Position(object):
     self.mark_price = 0.0
     self.buy_orders = []
     self.sell_orders = []
+    self.settlement_records = {}
 
   def set_trading_pair(self, trading_pair: 'TradingPair'):
     self.trading_pair = trading_pair
@@ -63,19 +69,21 @@ class Position(object):
     
     if order not in self.orders:
       self.orders.append(order)
-    match order.side:
-      case OrderSide.Buy:
-        self.buy_orders.append(order)
-      case OrderSide.Sell:
-        self.sell_orders.append(order)
+      match order.side:
+        case OrderSide.Buy:
+          self.buy_orders.append(order)
+        case OrderSide.Sell:
+          self.sell_orders.append(order)
 
     match (self.pos_side, order.side):
       case (PosSide.Long, OrderSide.Buy):
         #
         # 计算持仓均价
         # 采用移动加权平均法(加上手续费)
-        self.amount = sum((o.execution_quantity - o.commission if o.comm_settle_asset is self.base else o.execution_quantity) for o in self.buy_orders)
-        self.entry_price = sum(o.execution_price * (o.execution_quantity - o.commission  if o.comm_settle_asset is self.base else o.execution_quantity ) for o in self.buy_orders) / self.amount
+        base = order.trading_pair.base
+        
+        self.amount = sum((o.execution_quantity - o.commission if o.comm_settle_asset is base else o.execution_quantity) for o in self.buy_orders)
+        self.entry_price = sum(o.execution_price * (o.execution_quantity - o.commission  if o.comm_settle_asset is base else o.execution_quantity ) for o in self.buy_orders) / self.amount
 
       case (PosSide.Long, OrderSide.Sell):
         # 计算平仓
@@ -86,11 +94,10 @@ class Position(object):
 
         else:
           pass
-        
-        self.realized_pnl = (order.execution_price - self.entry_price) * order.execution_quantity - order.commission
-        
-        
-        
+
+        self.settlement_records[order] = self.entry_price
+
+
       case (PosSide.Short, OrderSide.Buy):
         self.amount = sum(o.execution_quantity for o in self.buy_orders)
         self.entry_price = sum(o.execution_price * o.execution_quantity for o in self.buy_orders) / self.amount
@@ -148,4 +155,15 @@ class Position(object):
     elif self.pos_side == PosSide.Short:
       return self.entry_price * (1 + 1 / self.leverage)
     return 0.0
+  
+  @property
+  def realized_pnl(self):
+    realized_pnl = 0.0
+    for order, entry_price in self.settlement_records.items():
+      a = entry_price * order.execution_quantity
+      b = order.execution_price * order.execution_quantity
+      realized_pnl += abs(a - b) 
+      if order.comm_settle_asset is order.trading_pair.quote:
+        realized_pnl -= order.commission
 
+    return abs(realized_pnl)
