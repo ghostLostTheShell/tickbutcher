@@ -1,6 +1,12 @@
 
 from typing import Dict, List, TYPE_CHECKING
 
+from tickbutcher.brokers import OrderStatusEvent, PositionStatusEvent
+from tickbutcher.brokers import OrderStatusEvent
+from tickbutcher.commission import CommissionType
+from tickbutcher.log import logger
+from tickbutcher.order import OrderSide, OrderStatus, OrderType
+
 
 
 # 在运行时这个导入不会被执行，从而避免循环导入
@@ -13,14 +19,30 @@ if TYPE_CHECKING:
   from tickbutcher.brokers.margin import MarginType
   from tickbutcher.products import AssetType
 
+class CollateralMargin:
+  """账户下某个仓位的保证金信息"""
+  position: 'Position'
+  amount: float
+  asset_type: 'AssetType'
+
+  def __init__(self, position: 'Position', amount: float, asset_type: 'AssetType'):
+    self.position = position
+    self.amount = amount
+    self.asset_type = asset_type
+    
 class Account(object):
   id: int
   default_leverage:int
   asset_value_map: Dict['AssetType', float]
   trading_pair_leverage:Dict['TradingPair', int]
-  trading_pair_margin_type: Dict['TradingPair', 'MarginType']
+  trading_pair_margin_type: Dict['TradingPair', 'MarginType'] # TODO 修改为仓位模式
+  #保证金相关的属性
+  collateral_margin_list: List['CollateralMargin'] # 该账户下所有仓位的保证金
+  _collateral_margin_map: Dict['Position', 'CollateralMargin']
+  
   order_list: List['Order']
   position_list: List['Position']
+  active_position_list: List['Position']
   broker: 'Broker' # 所属的经纪商
 
   def __init__(self, *, id: int, broker:'Broker'):
@@ -31,9 +53,155 @@ class Account(object):
     self.order_list = []
     self.position_list = []
     self.broker = broker
+    self.collateral_margin_list = []
+    self._collateral_margin_map = {}
+
+  def get_collateral_margin(self, position: 'Position') -> float:
+    """获取指定仓位的保证金"""
+    collateral_margin = self._collateral_margin_map.get(position)
+    return collateral_margin.amount if collateral_margin else 0.0
+
+  def add_margin(self, amount: float, position: 'Position'):
+    """增加保证金"""
+    collateral_margin = self._collateral_margin_map.get(position)
+    if collateral_margin:
+      collateral_margin.amount += amount
+    else:
+      collateral_margin = CollateralMargin(
+          position=position,
+          amount=amount,
+          asset_type=position.trading_pair.quote.type
+      )
+      self.collateral_margin_list.append(collateral_margin)
+      self._collateral_margin_map[position] = collateral_margin
+
+
+  def reduce_margin(self, amount: float, position: 'Position'):
+    """减少保证金"""
+    collateral_margin = self._collateral_margin_map.get(position)
+    if collateral_margin:
+      collateral_margin.amount -= amount
+      if collateral_margin.amount <= 0:
+        self.collateral_margin_list.remove(collateral_margin)
+      return
+  
+    raise ValueError(f"没有找到对应的保证金信息: {position}")
+  
+  def handle_ps_market_order(self, order: Order):
+    """处理永续合约市价单"""
+    
+    trading_pair = order.trading_pair
+    account = order.account
+    current = self.broker.get_contemplationer().candle[0, order.trading_pair.id]
+    order.execution_price = current.close
+    order.execution_quantity = order.quantity
+    #计算本次交易的手续费
+    commission = self.broker.get_commission(trading_pair)
+    match (commission.commission_type, order.side):
+      case (CommissionType.MakerTaker, OrderSide.Buy) :
+        commission_value = commission.calculate(order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.base)
+      case _:
+        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.quote)
+    
+    
+    match (order.trading_mode, order.pos_side, order.side):
+      #逐仓模式
+      case (TradingMode.Isolated, PosSide.Long, OrderSide.Buy):
+        # 逐仓开多仓或追加多仓()
+        # 检查仓位是否存在
+        position = account.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
+        if not position:
+          # 创建新仓位
+          position = Position(id=self.broker.generate_position_id(),
+                              account=self,
+                              trading_pair=trading_pair,
+                              pos_side=PosSide.Long,
+                              trading_mode=TradingMode.Isolated)
+          # 增加仓位到经纪商和账户
+          self.add_position(position)
+
+        # 增加仓位保证金
+        position_leverage = account.get_leverage(trading_pair)
+        margin = order.execution_quantity * order.execution_price / position_leverage
+        self.add_margin(margin, position)
+
+        # 进行交易
+        if order.comm_settle_asset is order.trading_pair.base:
+          account.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
+        else: 
+          account.deposit(order.execution_quantity, trading_pair.base.type)
+        
+        
+        order.status = OrderStatus.Completed
+        self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+        position.add_order(order)
+        self.broker.trigger_position_changed_event(PositionStatusEvent(position=position, event_type='Active'))
+        
+      case (TradingMode.Isolated, PosSide.Long, OrderSide.Sell):
+        # 逐仓多仓平仓
+        position = account.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
+        if position is None:
+          logger.warning(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
+          order.status = OrderStatus.Rejected
+        else:
+          position_leverage = account.get_leverage(trading_pair)
+          margin = order.execution_quantity * order.execution_price / position_leverage
+          #计算盈利
+          position.add_order(order)
+
+      case (TradingMode.Isolated, PosSide.Short, OrderSide.Buy):
+        # 逐仓空仓平仓
+        pass
+      case (TradingMode.Isolated, PosSide.Short, OrderSide.Sell):
+        # 逐仓空仓或追加空仓()
+        pass
+      
+      # 全仓模式
+      case (TradingMode.Cross, PosSide.Long, OrderSide.Buy):
+        # 全仓模式下，开多仓
+        account.deposit(order.execution_quantity * order.execution_price, trading_pair.quote.type)
+        pass
+      case (TradingMode.Cross, PosSide.Long, OrderSide.Sell):
+        # 全仓模式下，平多仓
+        pass
+      case (TradingMode.Cross, PosSide.Short, OrderSide.Buy):
+        # 全仓模式下，平空仓
+        pass
+      case (TradingMode.Cross, PosSide.Short, OrderSide.Sell):
+        # 全仓模式下，开空仓
+        pass
+      case _:
+        order.status = OrderStatus.Rejected
+        self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+      
+
+
 
   def add_order(self, order: 'Order'):
     self.order_list.append(order)
+    
+    # 处理交易
+    match (order.trading_pair.base.type, order.order_type):
+      case (AssetType.PerpetualSwap, OrderType.Market):
+        self.handle_ps_market_order(order)
+      case (AssetType.PerpetualSwap, OrderType.Limit):
+        pass
+      
+      case _:
+        raise ValueError(f"不支持的订单类型: {order.order_type} for {order.trading_pair.base.type}")
+
+  # 查询可用资产
+  def get_available_asset(self, asset_type: 'AssetType') -> float:
+    for collateral_margin in self.collateral_margin_list:
+      if collateral_margin.asset_type == asset_type:
+        margin = collateral_margin.amount
+        break
+    else:
+      margin = 0.0
+
+    return self.asset_value_map.get(asset_type, 0.0) - margin
 
   def set_margin_type(self, margin_type: 'MarginType', trading_pair: 'TradingPair'):
     self.trading_pair_margin_type[trading_pair] = margin_type
@@ -72,7 +240,7 @@ class Account(object):
                    trading_mode: 'TradingMode', 
                    pos_side: 'PosSide'):
     for position in self.position_list:
-      if position.is_open() and position.trading_pair == trading_pair and position.trading_mode is trading_mode and position.pos_side is pos_side:
+      if position.is_active() and position.trading_pair == trading_pair and position.trading_mode is trading_mode and position.pos_side is pos_side:
         return position
     return None
 

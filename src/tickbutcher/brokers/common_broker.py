@@ -1,11 +1,10 @@
 
 from typing import TYPE_CHECKING, Dict, List, Optional
+import uuid
 from tickbutcher.brokers.account import Account
 from tickbutcher.brokers.position import Position, PositionStatus
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.commission import Commission, CommissionType, MakerTakerCommission
-from tickbutcher.log import logger
-from tickbutcher.log import logger
 from tickbutcher.order import Order, OrderStatus, OrderType, OrderSide
 from tickbutcher.brokers import Broker, OrderStatusEventCallback, PositionStatusEvent, OrderStatusEvent, PositionStatusEventCallback
 from tickbutcher.products import AssetType
@@ -19,22 +18,19 @@ class CommonBroker(Broker):
   position_changed_event_listener: List[PositionStatusEventCallback]
   order_list: List[Order]
   order_completed_list: List[Order]
-  position_list: List[Position]
   _accounts:List[Account]
   tradingPair_commission_map: Dict[TradingPair, Commission]
 
   def __init__(self):
     self.order_list = []
     self.order_completed_list = []
-    self.position_list = []
     self._accounts = []
     self.default_commission = MakerTakerCommission(0.02, 0.05)
     self.default_ps_commission = MakerTakerCommission(0.02, 0.05, c_type=CommissionType.MakerTakerOnQuote)
     self.order_changed_event_listener = []
     self.position_changed_event_listener = [] 
 
-  def add_position(self, position: Position):
-    self.position_list.append(position)
+
 
   def set_commission(self, trading_pair: TradingPair, commission:Commission):
     self.tradingPair_commission_map[trading_pair] = commission
@@ -64,7 +60,8 @@ class CommonBroker(Broker):
     
   def set_contemplationer(self, contemplationer: 'Contemplationer'):
     self.contemplationer = contemplationer
-
+  def get_contemplationer(self) -> 'Contemplationer':
+    return self.contemplationer
 
   def trigger_order_changed_event(self, event: OrderStatusEvent):
     """
@@ -128,101 +125,6 @@ class CommonBroker(Broker):
   
   
 
-  
-  def handle_ps_market_order(self, order: Order):
-    """处理永续合约市价单"""
-    
-    trading_pair = order.trading_pair
-    account = order.account
-    current = self.contemplationer.candle[0, order.trading_pair.id]
-    order.execution_price = current.close
-    order.execution_quantity = order.quantity
-    #计算本次交易的手续费
-    commission = self.get_commission(trading_pair)
-    match (commission.commission_type, order.side):
-      case (CommissionType.MakerTaker, OrderSide.Buy) :
-        commission_value = commission.calculate(order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.base)
-      case _:
-        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.quote)
-    
-    #计算保证金
-    
-    #执行交易
-    
-    match (order.trading_mode, order.pos_side, order.side):
-      #逐仓模式
-      case (TradingMode.Isolated, PosSide.Long, OrderSide.Buy):
-        # 逐仓开多仓或追加多仓()
-        # 检查仓位是否存在
-        position = account.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
-        if not position:
-          # 创建新仓位
-          position = Position(id=self.generate_position_id(),
-                              trading_pair=trading_pair,
-                              pos_side=PosSide.Long,
-                              trading_mode=TradingMode.Isolated)
-          
-
-          # 增加仓位到经纪商和账户
-          self.add_position(position)
-          account.add_position(position)
-
-        # 增加仓位保证金
-        position_leverage = account.get_leverage(trading_pair)
-        margin = order.execution_quantity * order.execution_price / position_leverage
-        position.add_margin(margin)          
-        position.add_order(order)
-        # 增加账户资产
-        account.deposit(order.execution_quantity, trading_pair.quote.type)
-        
-      case (TradingMode.Isolated, PosSide.Long, OrderSide.Sell):
-        # 逐仓多仓平仓
-        position = account.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
-        if position is None:
-          logger.warning(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
-          order.status = OrderStatus.Rejected
-        else:
-          position_leverage = account.get_leverage(trading_pair)
-          margin = order.execution_quantity * order.execution_price / position_leverage
-          #计算盈利
-          
-          
-          position.add_order(order)
-
-      case (TradingMode.Isolated, PosSide.Short, OrderSide.Buy):
-        # 逐仓空仓平仓
-        pass
-      case (TradingMode.Isolated, PosSide.Short, OrderSide.Sell):
-        # 逐仓空仓或追加空仓()
-        pass
-      
-      # 全仓模式
-      case (TradingMode.Cross, PosSide.Long, OrderSide.Buy):
-        # 全仓模式下，开多仓
-        account.deposit(order.execution_quantity * order.execution_price, trading_pair.quote.type)
-        pass
-      case (TradingMode.Cross, PosSide.Long, OrderSide.Sell):
-        # 全仓模式下，平多仓
-        pass
-      case (TradingMode.Cross, PosSide.Short, OrderSide.Buy):
-        # 全仓模式下，平空仓
-        pass
-      case (TradingMode.Cross, PosSide.Short, OrderSide.Sell):
-        # 全仓模式下，开空仓
-        pass
-      case _:
-        order.status = OrderStatus.Rejected
-        self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
-      
-    #扣除手续费
-    account.add_order(order)
-    if order.status == OrderStatus.Filled:
-        account.withdraw(order.commission, order.comm_settle_asset.type)
-
-
-
   def submit_order(self, *,
                   account: 'Account',
                   trading_pair: TradingPair,
@@ -254,23 +156,8 @@ class CommonBroker(Broker):
     self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
     self.order_list.append(order)
     
+    order.account.add_order(order)
     
-    # 检查订单信息是否有错误
-    pass
-    # 
-    # 处理交易
-    match (order.trading_pair.base.type, order.order_type):
-      case (AssetType.PerpetualSwap, OrderType.MarketOrder):
-        self.handle_ps_market_order(order)
-      case (AssetType.PerpetualSwap, OrderType.LimitOrder):
-        pass
-      
-      case _:
-        raise ValueError(f"不支持的订单类型: {order.order_type} for {order.trading_pair.base.type}")
-
-
-
-
   
   def generate_order_id(self) -> int:
     """生成订单id"""
@@ -281,10 +168,8 @@ class CommonBroker(Broker):
 
   def generate_position_id(self) -> int:
     """生成交易id"""
-    if len(self.position_list) == 0:
-      return 0
-    else:
-      return self.position_list[-1].id + 1
+    u = uuid.uuid4()
+    return u.int
     
     
   def generate_account_id(self) -> int:

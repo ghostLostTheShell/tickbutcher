@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TYPE_CHECKING, List, Optional
+from typing_extensions import Literal
 
 from tickbutcher.order import PosSide
 
@@ -20,13 +21,19 @@ class OrderStatusEvent():
   def __init__(self, order: 'Order', event_type: 'OrderStatus'):
     self.order = order
     self.event_type = event_type
-    
-class PositionStatusEvent():
-  trade: 'Position'
-  event_type: str
 
-  def __init__(self, trade: 'Position', event_type: str):
-    self.trade = trade
+# class PositionStatus(enum.Enum):
+#   Active = 0  #持仓中
+#   Closed = 1  #已平仓
+#   ForcedLiq = 2  #强制平仓（ForcedLiquidation）
+
+PositionStatusEventType = Literal['Active', 'Closed', 'ForcedLiq', 'Updated']
+class PositionStatusEvent():
+  position: 'Position'
+  event_type: PositionStatusEventType
+
+  def __init__(self, position: 'Position', event_type: PositionStatusEventType):
+    self.position = position
     self.event_type = event_type
 
 OrderStatusEventCallback = Callable[[OrderStatusEvent], None]
@@ -34,7 +41,9 @@ OrderStatusEventCallback = Callable[[OrderStatusEvent], None]
 PositionStatusEventCallback = Callable[[PositionStatusEvent], None]
 
 class Broker(ABC):
-
+  
+  contemplationer:'Contemplationer'
+  
   @abstractmethod
   def register_account(self) -> 'Account':
       pass
@@ -70,6 +79,10 @@ class Broker(ABC):
   @abstractmethod
   def set_contemplationer(self, contemplationer: 'Contemplationer'):
     pass
+  
+  @abstractmethod
+  def get_contemplationer(self) -> 'Contemplationer':
+    ...
 
   @abstractmethod
   def set_commission(self, trading_pair: 'TradingPair', commission: 'Commission'):
@@ -133,4 +146,8 @@ class Broker(ABC):
                         *, 
                         trading_pairs: Optional[List['TradingPair']]=None, # 过滤交易对
                         ) -> List['Position']:
+    pass
+  
+  @abstractmethod
+  def generate_position_id(self) -> int:
     pass
