@@ -1,5 +1,5 @@
 
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING, Optional, Set
 
 from tickbutcher.brokers import OrderStatusEvent, PositionStatusEvent
 from tickbutcher.brokers import OrderStatusEvent
@@ -40,7 +40,7 @@ class Account(object):
   collateral_margin_list: List['CollateralMargin'] # 该账户下所有仓位的保证金
   _collateral_margin_map: Dict['Position', 'CollateralMargin']
   
-  order_list: List['Order']
+  order_list: Set['Order']
   position_list: List['Position']
   active_position_list: List['Position']
   broker: 'Broker' # 所属的经纪商
@@ -50,7 +50,7 @@ class Account(object):
     self.asset_value_map = {}
     self.trading_pair_leverage = {}
     self.default_leverage = 1
-    self.order_list = []
+    self.order_list = set()
     self.position_list = []
     self.broker = broker
     self.collateral_margin_list = []
@@ -91,7 +91,6 @@ class Account(object):
     """处理永续合约市价单"""
     
     trading_pair = order.trading_pair
-    account = order.account
     current = self.broker.get_contemplationer().candle[0, order.trading_pair.id]
     order.execution_price = current.close
     order.execution_quantity = order.quantity
@@ -113,7 +112,7 @@ class Account(object):
       case (TradingMode.Isolated, PosSide.Long, OrderSide.Buy):
         # 逐仓开多仓或追加多仓()
         # 检查仓位是否存在
-        position = account.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
+        position = self.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
         if not position:
           # 创建新仓位
           position = Position(id=self.broker.generate_position_id(),
@@ -125,15 +124,15 @@ class Account(object):
           self.add_position(position)
 
         # 增加仓位保证金
-        position_leverage = account.get_leverage(trading_pair)
+        position_leverage = self.get_leverage(trading_pair)
         margin = order.execution_quantity * order.execution_price / position_leverage
         self.add_margin(margin, position)
 
         # 进行交易
         if order.comm_settle_asset is order.trading_pair.base:
-          account.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
+          self.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
         else: 
-          account.deposit(order.execution_quantity, trading_pair.base.type)
+          self.deposit(order.execution_quantity, trading_pair.base.type)
         
         
         order.status = OrderStatus.Completed
@@ -143,12 +142,12 @@ class Account(object):
         
       case (TradingMode.Isolated, PosSide.Long, OrderSide.Sell):
         # 逐仓多仓平仓
-        position = account.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
+        position = self.get_open_position(trading_pair, trading_mode=TradingMode.Isolated, pos_side=PosSide.Long)
         if position is None:
           logger.warning(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
           order.status = OrderStatus.Rejected
         else:
-          position_leverage = account.get_leverage(trading_pair)
+          position_leverage = self.get_leverage(trading_pair)
           margin = order.execution_quantity * order.execution_price / position_leverage
           #计算盈利
           position.add_order(order)
@@ -163,7 +162,7 @@ class Account(object):
       # 全仓模式
       case (TradingMode.Cross, PosSide.Long, OrderSide.Buy):
         # 全仓模式下，开多仓
-        account.deposit(order.execution_quantity * order.execution_price, trading_pair.quote.type)
+        self.deposit(order.execution_quantity * order.execution_price, trading_pair.quote.type)
         pass
       case (TradingMode.Cross, PosSide.Long, OrderSide.Sell):
         # 全仓模式下，平多仓
@@ -179,10 +178,145 @@ class Account(object):
         self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
       
 
+  def handle_spot_market_order(self, order: 'Order'):
+    """处理现货市价单"""
+    trading_pair = order.trading_pair
+    current = self.broker.get_contemplationer().candle[0, order.trading_pair.id]
+    order.execution_price = current.close
+    order.execution_quantity = order.quantity
+    #计算本次交易的手续费
+    commission = self.broker.get_commission(trading_pair)
+    match (commission.commission_type, order.side):
+      case (CommissionType.MakerTaker, OrderSide.Buy) :          
+        commission_value = commission.calculate(order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.base)
+        
+      case _:
+        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.quote)
+    
+    match order.side:
+      case OrderSide.Buy:
+        if order.comm_settle_asset is order.trading_pair.base:
+          self.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
+        else: 
+          self.deposit(order.execution_quantity, trading_pair.base.type)
+          
+        position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
+        
+        if not position:
+          # 创建新仓位
+          position = Position(id=self.broker.generate_position_id(),
+                              account=self,
+                              trading_pair=trading_pair,
+                              pos_side=PosSide.Long,
+                              trading_mode=TradingMode.Spot)
+          # 增加仓位到经纪商和账户
+          self.add_position(position)
+          self.broker.trigger_position_changed_event(PositionStatusEvent(position=position, event_type='Active'))
+        
+        position.add_order(order)
+        
+      case OrderSide.Sell:
+        
+        position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
+        if position is None:
+          logger.error(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
+          raise SystemError(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
+        
+        if order.comm_settle_asset is order.trading_pair.quote:
+          self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote.type)  
+        else: 
+          self.deposit(order.execution_price * order.execution_quantity, trading_pair.quote.type)
 
+        position.add_order(order)
+        if not position.is_closed():
+          self.broker.trigger_position_changed_event(PositionStatusEvent(position=position, event_type=position.status.name))
+        
+      case _:
+        raise SystemError(f"不支持的订单方向: {order.side}")
+    
+    order.status = OrderStatus.Completed
+    self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
 
-  def add_order(self, order: 'Order'):
-    self.order_list.append(order)
+  def handle_spot_limit_order(self, order: 'Order'):
+    """处理现货限价单"""
+    trading_pair = order.trading_pair
+    current = self.broker.get_contemplationer().candle[0, order.trading_pair.id]
+    order.execution_price = current.close
+    order.execution_quantity = order.quantity
+    #计算本次交易的手续费
+    commission = self.broker.get_commission(trading_pair)
+    match (commission.commission_type, order.side):
+      case (CommissionType.MakerTaker, OrderSide.Buy) :
+        
+        commission_value = commission.calculate(order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.base)
+        
+      case _:
+        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.quote)
+    
+    match order.side:
+      case OrderSide.Buy:
+        if order.price >= current.close:
+          if order.comm_settle_asset is order.trading_pair.base:
+            self.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
+          else: 
+            self.deposit(order.execution_quantity, trading_pair.base.type)
+            
+          position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
+          
+          if not position:
+            # 创建新仓位
+            position = Position(id=self.broker.generate_position_id(),
+                                account=self,
+                                trading_pair=trading_pair,
+                                pos_side=PosSide.Long,
+                                trading_mode=TradingMode.Spot)
+            # 增加仓位到经纪商和账户
+            self.add_position(position)
+            self.broker.trigger_position_changed_event(PositionStatusEvent(position=position, event_type='Active'))
+          
+          position.add_order(order)
+          order.status = OrderStatus.Completed
+          self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+          
+        else:
+          pass
+      case OrderSide.Sell:
+        if order.price <= current.close:
+          position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
+          if position is None:
+            logger.error(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
+            raise SystemError(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
+          
+          if order.comm_settle_asset is order.trading_pair.quote:
+            self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote.type)  
+          else: 
+            self.deposit(order.execution_price * order.execution_quantity, trading_pair.quote.type)
+
+          position.add_order(order)
+          if not position.is_closed():
+            self.broker.trigger_position_changed_event(PositionStatusEvent(position=position, event_type=position.status.name))
+          
+          order.status = OrderStatus.Completed
+          self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+        else:
+          pass
+        
+      case _:
+        raise SystemError(f"不支持的订单方向: {order.side}")
+      
+    if order.status is OrderStatus.Pending or order.status is OrderStatus.PartiallyFilled:
+      #计算本次交易的手续费
+      self.broker.add_pending_order(order)
+      # commission = self.broker.get_commission(trading_pair)
+    else:
+      self.broker.remove_pending_order(order)
+
+  def process_order(self, order: 'Order'):
+    self.order_list.add(order)
     
     # 处理交易
     match (order.trading_pair.base.type, order.order_type):
@@ -190,7 +324,10 @@ class Account(object):
         self.handle_ps_market_order(order)
       case (AssetType.PerpetualSwap, OrderType.Limit):
         pass
-      
+      case (AssetType.STOCK, OrderType.Market) | (AssetType.CRYPTO, OrderType.Market):
+        self.handle_spot_market_order(order)
+      case (AssetType.STOCK, OrderType.Limit) | (AssetType.CRYPTO, OrderType.Limit):
+        self.handle_spot_limit_order(order)
       case _:
         raise ValueError(f"不支持的订单类型: {order.order_type} for {order.trading_pair.base.type}")
 
@@ -240,8 +377,12 @@ class Account(object):
                    trading_pair: 'TradingPair', 
                    *, 
                    trading_mode: 'TradingMode', 
-                   pos_side: 'PosSide'):
+                   pos_side: Optional['PosSide']=None):
+    if trading_mode is TradingMode.Spot:
+      pos_side = PosSide.Long
+    
     for position in self.position_list:
+      
       if position.is_active() and position.trading_pair == trading_pair and position.trading_mode is trading_mode and position.pos_side is pos_side:
         return position
     return None

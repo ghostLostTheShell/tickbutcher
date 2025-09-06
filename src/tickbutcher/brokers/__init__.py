@@ -44,6 +44,16 @@ class Broker(ABC):
   
   contemplationer:'Contemplationer'
   
+
+
+  @abstractmethod
+  def add_pending_order(self, order:'Order'):
+    ...
+    
+  @abstractmethod 
+  def remove_pending_order(self, order:Order):
+    ...
+      
   @abstractmethod
   def register_account(self) -> 'Account':
       pass

@@ -25,7 +25,7 @@ class OrderStatus(enum.Enum):
   """订单状态类型 （包含准备 and 市商返回类型）"""
   Created = 0       ### 已创建 (Created)
   Submitted = 1   ### 已提交 (Submitted)
-  Padding = 2  ### 等待订单撮合 (Padding)
+  Pending = 2  ### 等待订单撮合 (Pending)
   Accepted = 3 ### 已接受 (Accepted) 预先扣除保证金
   PartiallyFilled = 4   ### 部分成交 (Partially Filled)
   Filled = 5   ### 完全成交 (Filled)
@@ -42,15 +42,15 @@ class OrderSide(enum.Enum):
   
 class PosSide(enum.Enum):
   """订单操作仓位方向"""
-  Long = 0
+  Long  = 0
   Short = 1
-  NET = 3
+  NET   = 3
   
 class TradingMode(enum.Enum):
   """交易模式"""
-  Isolated = 0
-  Cross = 1
-  Cash = 2
+  Isolated  = 0
+  Cross     = 1
+  Spot      = 2
 
 class Order():
   id: int
@@ -105,7 +105,7 @@ class Order():
     return self.status in (OrderStatus.Submitted,
                            OrderStatus.Accepted,
                            OrderStatus.PartiallyFilled,
-                           OrderStatus.Padding)
+                           OrderStatus.Pending)
 
   def set_id(self, id: int):
     self.id = id
@@ -123,10 +123,10 @@ class Order():
     """判断当前order是否全部成交"""
     return self.status == OrderStatus.Filled
 
-  def is_padding(self):
+  def is_pending(self):
     """判断当前order是否处于市商撮合的等待状态"""
-    return self.status == OrderStatus.Padding
-  
+    return self.status == OrderStatus.Pending
+
   def set_commission(self, 
                      commission:float, 
                      settle_asset:'FinancialInstrument'):

@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, Dict, List, Optional
 import uuid
 from tickbutcher.brokers.account import Account
-from tickbutcher.brokers.position import Position, PositionStatus
+from tickbutcher.brokers.position import Position
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.commission import Commission, CommissionType, MakerTakerCommission
 from tickbutcher.order import Order, OrderStatus, OrderType, OrderSide
@@ -18,6 +18,7 @@ class CommonBroker(Broker):
   position_changed_event_listener: List[PositionStatusEventCallback]
   order_list: List[Order]
   order_completed_list: List[Order]
+  order_pending_list: List[Order]
   _accounts:List[Account]
   tradingPair_commission_map: Dict[TradingPair, Commission]
 
@@ -25,12 +26,21 @@ class CommonBroker(Broker):
     self.order_list = []
     self.order_completed_list = []
     self._accounts = []
-    self.default_commission = MakerTakerCommission(0.02, 0.05)
-    self.default_ps_commission = MakerTakerCommission(0.02, 0.05, c_type=CommissionType.MakerTakerOnQuote)
+    self.default_commission = MakerTakerCommission(8, 10)
+    self.default_ps_commission = MakerTakerCommission(2, 5, c_type=CommissionType.MakerTakerOnQuote)
     self.order_changed_event_listener = []
     self.position_changed_event_listener = [] 
+    self.order_pending_list = []
+  
+  def add_pending_order(self, order:Order):
+    if order.status is not OrderStatus.Pending and order.status is not OrderStatus.PartiallyFilled:
+      raise ValueError("只能添加状态为Pending或PartiallyFilled的订单")
+    if order not in self.order_pending_list:
+      self.order_pending_list.append(order)
 
-
+  def remove_pending_order(self, order:Order):
+    if order in self.order_pending_list:
+      self.order_pending_list.remove(order)
 
   def set_commission(self, trading_pair: TradingPair, commission:Commission):
     self.tradingPair_commission_map[trading_pair] = commission
@@ -121,9 +131,11 @@ class CommonBroker(Broker):
     return []
   
   def next(self):
-    pass
-  
-  
+    for order in self.order_pending_list:
+      order.account.process_order(order)
+    
+    
+    # 清理已经完成的订单
 
   def submit_order(self, *,
                   account: 'Account',
@@ -154,9 +166,9 @@ class CommonBroker(Broker):
     order.created_at = self.contemplationer.current_time
     order.set_id(self.generate_order_id())
     self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
-    self.order_list.append(order)
     
-    order.account.add_order(order)
+    self.order_list.append(order)
+    order.account.process_order(order)
     
   
   def generate_order_id(self) -> int:
