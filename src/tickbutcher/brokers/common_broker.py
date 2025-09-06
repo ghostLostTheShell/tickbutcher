@@ -132,7 +132,7 @@ class CommonBroker(Broker):
                   side: OrderSide,
                   trading_mode:'TradingMode',
                   quantity: float,
-                  pos_side: Optional[PosSide]=None,
+                  pos_side: Optional['PosSide']=None,
                   price: Optional[int] = None,
                   reduce_only:Optional[bool]=None
                    ) -> None:

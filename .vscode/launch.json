@@ -86,6 +86,13 @@
       "request": "launch",
       "module": "unittest",
       "args": ["tests.test_brokers.position.PositionTest"]
+    },
+        {
+      "name": "[test] test_util.decimals.TestGetDecimalPlaces",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["tests.test_util.decimals.TestGetDecimalPlaces"]
     }
   ]
 }

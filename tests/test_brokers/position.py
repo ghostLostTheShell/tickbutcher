@@ -58,7 +58,8 @@ class PositionTest(unittest.TestCase):
     account = broker.register_account()
     mock_account = Mock(wraps=account)
     
-    pos = Position(1, 
+    pos = Position(1,
+                   trading_pair=common_tp.SOLUSDTP,
                    account=mock_account, # type: ignore
                    pos_side=PosSide.Long, 
                    trading_mode=TradingMode.Isolated)
@@ -66,45 +67,72 @@ class PositionTest(unittest.TestCase):
     mock_account = Mock(spec=Account)
     mock_account.id = 4
 
+    quantity = 100
+    execution_price=23.5
+    execution_quantity=100
+    commission=(execution_price * execution_quantity * 1) / 10000
+    
     order = make_market_isolated_order(account=mock_account,
                                         id=1,
-                                        quantity=100,
+                                        quantity=quantity,
                                         side=OrderSide.Buy,
-                                        execution_price=23.5,
-                                        execution_quantity=100)
+                                        execution_price=execution_price,
+                                        execution_quantity=execution_quantity,
+                                        commission=commission)
     order.status = OrderStatus.Completed
     pos.add_order(order)
+    trade_cost = execution_price * execution_quantity + commission
+    entry_price = trade_cost / execution_quantity
+    
     # print(pos)
-    self.assertEqual(pos.entry_price, 23.5)
+    self.assertEqual(pos.entry_price, entry_price)
     self.assertEqual(pos.amount, 100)
     self.assertEqual(pos.status, PositionStatus.Active)
     self.assertEqual(pos.pos_side, PosSide.Long)
     self.assertEqual(pos.trading_mode, TradingMode.Isolated)
     
+    quantity = 100
+    execution_price=10.5
+    execution_quantity=100
+    commission=(execution_price * execution_quantity) * 1 / 10000
     
     order = make_market_isolated_order(account=mock_account,
                                         id=2,
-                                        quantity=100,
+                                        quantity=quantity,
                                         side=OrderSide.Buy,
-                                        execution_price=10.5,
-                                        execution_quantity=100)
+                                        execution_price=execution_price,
+                                        execution_quantity=execution_quantity,
+                                        commission=commission)
     pos.add_order(order)
     # print(pos)
-    self.assertEqual(pos.entry_price, (23.5 * 100 + 10.5 * 100) / 200)
+
+    trade_cost = (23.5 * 100 + (23.5 * 100 * 1 / 10000)) + (10.5 * 100 + (10.5 * 100 * 1 / 10000))
+    entry_price = trade_cost / 200
+    self.assertEqual(pos.entry_price, entry_price)
     self.assertEqual(pos.amount, 200)
     self.assertEqual(pos.status, PositionStatus.Active)
     self.assertEqual(pos.pos_side, PosSide.Long)
     self.assertEqual(pos.trading_mode, TradingMode.Isolated)
     
+    
+    #部分平仓
+    quantity = 100
+    execution_price=25.5
+    execution_quantity=100
+    commission=(execution_price * execution_quantity * 1) / 10000
     order = make_market_isolated_order(account=mock_account,
                                         id=3,
-                                        quantity=50,
+                                        quantity=quantity,
                                         side=OrderSide.Sell,
-                                        execution_price=10.5,
-                                        execution_quantity=100)
+                                        execution_price=execution_price,
+                                        execution_quantity=execution_quantity,
+                                        commission=commission)
+   
     pos.add_order(order)
-    self.assertEqual(pos.entry_price, (23.5 * 100 + 10.5 * 100) / 200)
+    print(pos)
+    self.assertEqual(pos.entry_price, entry_price)
     self.assertEqual(pos.amount, 100)
     self.assertEqual(pos.status, PositionStatus.Active)
     self.assertEqual(pos.pos_side, PosSide.Long)
     self.assertEqual(pos.trading_mode, TradingMode.Isolated)
+    self.assertAlmostEqual(pos.realized_pnl, (25.5 - entry_price) * 100 - (25.5 * 100 * 1 / 10000), places=5)

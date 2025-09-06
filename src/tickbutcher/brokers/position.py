@@ -103,6 +103,8 @@ class Position(object):
     """根据订单计算交易状态， 更新开仓成本，已实现盈亏和总成本"""
     self.avg_price  = 0.0
     self.total_cost = 0.0
+    self.amount = 0.0
+    self.realized_pnl = 0.0
     
     for order in self.orders:
       is_opening = True

@@ -22,7 +22,7 @@ class Commission(ABC):
   commission_type: CommissionType
 
   @abstractmethod
-  def calculate(self, value: float) -> float:
+  def calculate(self, value:float) -> float:
         """
         计算手续费
         :param value: 成交金额
@@ -38,10 +38,10 @@ class FixedRateCommission(Commission):
   """按成交金额比例收取手续费（常见方式，比如 0.1%）"""
 
 
-  def __init__(self, rate: float, *,
+  def __init__(self, rate: int, *,
                c_type: CommissionRateType = CommissionType.FixedRate):
       """
-      :param rate: 手续费率，比如 0.001 = 0.1%
+      :param rate: 手续费率，(万分之几) 比如 0.001 = 0.1%
       :param c_type: 只能为 CommissionType.FixedRate 或 CommissionType.FixedRateOnQuote
       """
       if c_type not in (CommissionType.FixedRate, CommissionType.FixedRateOnQuote):
@@ -50,7 +50,7 @@ class FixedRateCommission(Commission):
       self.commission_type = c_type
 
 
-  def calculate(self, value: float) -> float:
+  def calculate(self, value:float) -> float:
       return value * self.rate
 
 
@@ -62,7 +62,7 @@ class FixedPerTradeCommission(Commission):
   """每笔交易收固定金额手续费"""
   commission_type = CommissionType.FixedPerTrade
 
-  def __init__(self, fee: float, *, c_type:CommissionFixedPerTradeType=CommissionType.FixedPerTrade):
+  def __init__(self, fee: int, *, c_type:CommissionFixedPerTradeType=CommissionType.FixedPerTrade):
       """
       :param fee: 固定手续费，比如 5 USDT
       :param c_type: 只能为 CommissionType.FixedPerTrade 或 CommissionType.FixedPerTradeOnQuote
@@ -72,7 +72,7 @@ class FixedPerTradeCommission(Commission):
       self.commission_type = c_type
       self.fee = fee
 
-  def calculate(self, value: float) -> float:
+  def calculate(self, value:float) -> int:
       return self.fee
 
 class TieredCommission(Commission):
@@ -87,12 +87,12 @@ class TieredCommission(Commission):
     self.tiers = sorted(tiers, key=lambda x: x[0])
     self.commission_type = CommissionType.Tiered
 
-  def calculate(self, value: float) -> float:
+  def calculate(self, value:float) -> float:
     for amount, rate in self.tiers:
       if value <= amount:
-        return value * rate
+        return (value * rate) / 10000
     # fallback, should not reach here if tiers are set correctly
-    return value * self.tiers[-1][1]
+    return (value * self.tiers[-1][1]) / 10000
 
 
 CommissionMakerTakerType: TypeAlias = Optional[Literal[
@@ -104,14 +104,14 @@ class MakerTakerCommission(Commission):
   """
 
   def __init__(self, 
-                maker_rate: float, 
-                taker_rate: float, 
+                maker_rate: int, 
+                taker_rate: int, 
                 *,
                 c_type:CommissionMakerTakerType=CommissionType.MakerTaker
                 ):
     """
-    :param maker_rate: 挂单手续费率
-    :param taker_rate: 吃单手续费率
+    :param maker_rate: 挂单手续费率(万分之几)
+    :param taker_rate: 吃单手续费率(万分之几)
     :param c_type: 只能为 CommissionType.MakerTaker 或 CommissionType.MakerTakerOnQuote
     """
     if c_type not in [CommissionType.MakerTaker, CommissionType.MakerTakerOnQuote]:
@@ -123,8 +123,6 @@ class MakerTakerCommission(Commission):
 
 
 
-  def calculate(self, value: float, is_taker: bool = True) -> float:
+  def calculate(self, value:float, is_taker: bool = True) -> float:
     rate = self.taker_rate if is_taker else self.maker_rate
-    return value * rate
-
-FixedRateCommission(121305, c_type=CommissionType.FixedRate)
+    return (value * rate) / 10000

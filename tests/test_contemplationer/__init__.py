@@ -25,14 +25,14 @@ class ContemplationerUnitTest(unittest.TestCase):
                                           end_date=end_start_date, 
                                           data_source_url="sqlite:///./tmp/app.db")
     
-    sol_usdt_ps = FinancialInstrument("SOL/USDT", id="SOLUSDTPS", type=AssetType.PerpetualSwap)
+    _sol_usdt_ps = FinancialInstrument(symbol="SOL/USDT", type=AssetType.PerpetualSwap)
 
     sol_candle_feed = PandasCandleFeed(trading_pair=common_trading_pair.SOLUSDTP, 
                                        timeframe_level=TimeframeType.sec1,
                                        dataframe=sol_usdt_1s_dataframe)
 
     
-    maker_taker_commission = MakerTakerCommission(maker_rate=0.001, taker_rate=0.002)
+    maker_taker_commission = MakerTakerCommission(maker_rate=0.0008, taker_rate=0.001)
 
     broker = Broker()
     broker.set_commission(AssetType.PerpetualSwap, maker_taker_commission)

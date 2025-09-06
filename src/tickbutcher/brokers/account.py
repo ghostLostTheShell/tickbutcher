@@ -87,7 +87,7 @@ class Account(object):
   
     raise ValueError(f"没有找到对应的保证金信息: {position}")
   
-  def handle_ps_market_order(self, order: Order):
+  def handle_ps_market_order(self, order: 'Order'):
     """处理永续合约市价单"""
     
     trading_pair = order.trading_pair
@@ -99,8 +99,10 @@ class Account(object):
     commission = self.broker.get_commission(trading_pair)
     match (commission.commission_type, order.side):
       case (CommissionType.MakerTaker, OrderSide.Buy) :
+        
         commission_value = commission.calculate(order.execution_quantity)
         order.set_commission(commission_value, trading_pair.base)
+        
       case _:
         commission_value = commission.calculate(order.execution_price * order.execution_quantity)
         order.set_commission(commission_value, trading_pair.quote)

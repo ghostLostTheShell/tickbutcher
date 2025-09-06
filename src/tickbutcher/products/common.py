@@ -1,5 +1,5 @@
 
-from tickbutcher.products import AssetType, AssetType, FinancialInstrument
+from tickbutcher.products import AssetType, FinancialInstrument
 
 # 加密货币
 USDT = FinancialInstrument(symbol="USDT", type=AssetType.CRYPTO)
