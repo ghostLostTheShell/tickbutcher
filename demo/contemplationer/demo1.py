@@ -14,18 +14,20 @@ from tickbutcher.strategys import CommonStrategy
 class TestStrategy(CommonStrategy):
   
   def next(self):
-    print(f"{self.candled.position}:: {self.candled.SOLUSDTP}")
+    mfi = self.contemplationer.get_indicator('mfi', MoneyFlowIndex) 
+    
+    # _mfi.get_result()
+    print(f"{self.candled.position}:: {self.candled.SOLUSDTP[0]} :: mfi:: {mfi.get_curret_result(SOLUSDTP)}")
 
-sol_usdt_1s, sol_usdt_1m = get_sol_usdt_1s_and_1min()
 solusdt_1s, solusdt_1min= get_sol_usdt_1s_and_1min()
 
 sol_candle_feed = PandasCandleFeed(trading_pair=SOLUSDTP,
-                                    timeframe_level=TimeframeType.sec1,
-                                    dataframe=solusdt_1s)
-sol_candle_feed.load_data(solusdt_1min, TimeframeType.min1)
+                                    timeframe_level=TimeframeType.min1,
+                                    dataframe=solusdt_1min)
+# sol_candle_feed.load_data(solusdt_1min, TimeframeType.min1)
 
 broker = CommonBroker()
-ontemplationer = Contemplationer(timeframe_level=TimeframeType.sec1, 
+ontemplationer = Contemplationer(timeframe_level=TimeframeType.min1, 
                                  brokers=[broker])
 
 ontemplationer.add_kline(candleFeed=sol_candle_feed)

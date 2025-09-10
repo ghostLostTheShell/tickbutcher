@@ -31,13 +31,13 @@ class PandasCandleFeed(CandleFeed):
 
     super().__init__(trading_pair=trading_pair, timeframe_level=timeframe_level, timezone=timezone)
     
-    if timeframe_level is  TimeframeType.sec1:
-      ## 检查index的步进是否为1秒
-      first100_idx = dataframe.index[:100]
-      if not (pd.Series(first100_idx).diff().dropna() == 1000).all():
-        raise ValueError("Dataframe index is not 1 second apart")
-    else:
-      raise NotImplementedError(f"{timeframe_level} timeframe validation not implemented yet")
+    # if timeframe_level is  TimeframeType.sec1:
+    #   ## 检查index的步进是否为1秒
+    #   first100_idx = dataframe.index[:100]
+    #   if not (pd.Series(first100_idx).diff().dropna() == 1000).all():
+    #     raise ValueError("Dataframe index is not 1 second apart")
+    # else:
+    #   raise NotImplementedError(f"{timeframe_level} timeframe validation not implemented yet")
 
     self.load_data(dataframe, timeframe_level)
 

@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import CandleFeed, CandleIndexer, TimeframeType
 from tickbutcher.log import logger
-from typing import Callable, Dict, List, TYPE_CHECKING, TypeVar, ParamSpec, Any
+from typing import Callable, Dict, List, TYPE_CHECKING, Type, TypeVar, ParamSpec, Any, cast
 
 
 if TYPE_CHECKING:
@@ -84,3 +84,6 @@ class Contemplationer:
   @property
   def candle(self):
     return CandleIndexer(self.current_time, self.trading_pair_candle_table, self.timeframe_level)
+  
+  def get_indicator(self, name: str, typ: 'Type[I]') -> 'I':
+    return cast('I', self.indicators_map[name])
