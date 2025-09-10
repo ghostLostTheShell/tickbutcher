@@ -3,7 +3,7 @@ from typing import List, Optional
 from zoneinfo import ZoneInfo
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pandas as pd
 from tickbutcher.candlefeed.candlefeed import CandleFeed
 
@@ -95,7 +95,7 @@ class PandasCandleFeed(CandleFeed):
 
     return dataframe.index # type: ignore
 
-  def get_ohlcv(self, position:int, *, timeframe:TimeframeType, offset:int=0, length:int=1)->Series[Any] | DataFrame:# type: ignore
+  def get_ohlcv(self, position:int, *, timeframe:TimeframeType, offset:int=0, length:int=1)-> 'Series | DataFrame':# type: ignore
     match timeframe:
       case TimeframeType.sec1:
         return self.sec1(position, offset=offset, length=length)

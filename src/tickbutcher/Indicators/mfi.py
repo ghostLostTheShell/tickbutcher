@@ -20,9 +20,10 @@ class MoneyFlowIndex(Indicator[float]):
   # result:Dict['TradingPair', Deque[float]]
   
   def __init__(self, *, period:int=14):
-    self.tp_window = {}
-    self.pos_mf = {}
-    self.neg_mf = {}
+    super().__init__()
+    self._tp_window = {}
+    self._pos_mf = {}
+    self._neg_mf = {}
     self.period = period
     
   

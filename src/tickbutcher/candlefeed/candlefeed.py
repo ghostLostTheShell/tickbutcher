@@ -35,13 +35,13 @@ class CandleFeed():
     pass
 
   @overload
-  def get_ohlcv(self, position:int, *, timeframe:TimeframeType)-> Series[Any] :# type: ignore
+  def get_ohlcv(self, position:int, *, timeframe:TimeframeType)-> Series:# type: ignore
     pass
   
   def get_ohlcv(self, position:int, *, timeframe:TimeframeType, length:int=1)-> DataFrame:# type: ignore
     pass
   # 时间框架数据  
-  def sec1(self, position:int, *, offset:int=0, length:int=1)-> Series[Any] | DataFrame: # type: ignore
+  def sec1(self, position:int, *, offset:int=0, length:int=1)-> Series|DataFrame: # type: ignore
     ...
     
   def min1(self, position:int, *, offset:int=0, length:int=1):

@@ -11,6 +11,12 @@ class Indicator(Generic[R], object):
   name:str
   result:Dict['TradingPair', Deque[R]]
   
+  def __init__(self):
+    self.result={}
+  
+  def init(self):
+    pass
+  
   def set_contemplationer(self, contemplationer: 'Contemplationer'):
     self.contemplationer = contemplationer
 

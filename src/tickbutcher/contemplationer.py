@@ -1,7 +1,5 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
-from tickbutcher.Indicators import Indicator
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import CandleFeed, CandleIndexer, TimeframeType
 from tickbutcher.log import logger
@@ -11,18 +9,19 @@ from typing import Callable, Dict, List, TYPE_CHECKING, TypeVar, ParamSpec, Any
 if TYPE_CHECKING:
   from tickbutcher.brokers import Broker
   from tickbutcher.strategys import Strategy
-
-S = TypeVar("S", bound='Strategy')
-I = TypeVar("I", bound=Indicator[Any])
-P = ParamSpec("P")
+  from tickbutcher.Indicators import Indicator
+  
+  S = TypeVar("S", bound='Strategy')
+  I = TypeVar("I", bound='Indicator[Any]')
+  P = ParamSpec("P")
 
 class Contemplationer:
   brokers: List['Broker']
   strategys: List['Strategy']
   candle_list: List[CandleFeed]
   trading_pair_candle_table: Dict[TradingPair, CandleFeed]
-  indicators:List[Indicator[Any]]
-  indicators_map:Dict[str, Indicator[Any]]
+  indicators:List['Indicator[Any]']
+  indicators_map:Dict[str, 'Indicator[Any]']
   current_time: int
   timeframe_level:TimeframeType
 
@@ -33,6 +32,7 @@ class Contemplationer:
     self.trading_pair_candle_table = {}
     self.brokers = brokers
     self.indicators=[]
+    self.indicators_map = {}
     for broker in brokers:
       broker.set_contemplationer(self)
 
@@ -40,15 +40,17 @@ class Contemplationer:
   def set_current_time(self, current_time: int):
     self.current_time = current_time
 
-  def add_indicator(self, indicator:Callable[P, Indicator[Any]], *args:P.args, **kwargs:P.kwargs) -> None:
+  def add_indicator(self, indicator:'Callable[P, Indicator[Any]]', *args:'P.args', **kwargs:'P.kwargs') -> None:
     new_indicator = indicator(*args, **kwargs)
+    new_indicator.set_contemplationer(self)
+    new_indicator.init()
     self.indicators.append(new_indicator)
     self.indicators_map[new_indicator.name] = new_indicator
     
 
-  def add_strategy(self, strategy:Callable[P, S], *args:P.args, **kwargs:P.kwargs) -> None:
+  def add_strategy(self, strategy:'Callable[P, S]', *args:'P.args', **kwargs:'P.kwargs') -> None:
     new_strategy = strategy(*args, **kwargs)
-    # new_strategy.set_broker(self.brokers)
+    new_strategy.set_contemplationer(self)
     self.strategys.append(new_strategy)
 
   def add_kline(self, *, candleFeed:CandleFeed):

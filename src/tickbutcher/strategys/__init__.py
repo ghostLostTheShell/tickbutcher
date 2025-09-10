@@ -3,6 +3,10 @@ from tickbutcher.brokers import Broker
 from tickbutcher.brokers.account import Account
 from tickbutcher.brokers.trading_pair import TradingPair
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from tickbutcher.contemplationer import Contemplationer
 class Strategy(ABC):
     
   @abstractmethod
@@ -12,7 +16,9 @@ class Strategy(ABC):
   @abstractmethod
   def set_broker(self, broker:Broker):
     pass
-
+  
+  def set_contemplationer(self, contemplationer: 'Contemplationer'):
+    self.contemplationer = contemplationer
 
     
 
@@ -20,9 +26,13 @@ class CommonStrategy(Strategy):
 
   broker:Broker
   account:Account
+  contemplationer: 'Contemplationer'
   
   def __init__(self):
     super().__init__()
+    
+  def set_contemplationer(self, contemplationer: 'Contemplationer'):
+    self.contemplationer = contemplationer    
     
   def next(self):
     pass
@@ -36,7 +46,7 @@ class CommonStrategy(Strategy):
   
   @property
   def candled(self):
-    return self.broker.contemplationer.candle
+    return self.contemplationer.candle
 
   def close_trade(self, trading_pair:TradingPair):
     print("平仓")
