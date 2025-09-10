@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from zoneinfo import ZoneInfo
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
@@ -11,23 +11,23 @@ class PandasCandleFeed(CandleFeed):
   """基于Pandas的K线数据源
   
   Note: 如果下列dataframe部分为空，可能导致自下向上查找更小时间间隔K线时失败"""
-  timeframe_s1:DataFrame = None
-  timeframe_min1:DataFrame = None
-  timeframe_min5:DataFrame = None
-  timeframe_min15:DataFrame = None
-  timeframe_h1:DataFrame = None
-  timeframe_h4:DataFrame = None
-  timeframe_d1:DataFrame = None
-  timeframe_w1:DataFrame = None
-  timeframe_mo1:DataFrame = None
-  timeframe_y1:DataFrame = None
-  
+  timeframe_s1:Optional[DataFrame] = None
+  timeframe_min1:Optional[DataFrame] = None
+  timeframe_min5:Optional[DataFrame] = None
+  timeframe_min15:Optional[DataFrame] = None
+  timeframe_h1:Optional[DataFrame] = None
+  timeframe_h4:Optional[DataFrame] = None
+  timeframe_d1:Optional[DataFrame] = None
+  timeframe_w1:Optional[DataFrame] = None
+  timeframe_mo1:Optional[DataFrame] = None
+  timeframe_y1:Optional[DataFrame] = None
+
   
   def __init__(self, *, 
                trading_pair:TradingPair,
                timeframe_level:TimeframeType,
                dataframe:DataFrame,
-               timezone:ZoneInfo=None):
+               timezone:Optional[ZoneInfo]=None):
 
     super().__init__(trading_pair=trading_pair, timeframe_level=timeframe_level, timezone=timezone)
     
@@ -36,7 +36,7 @@ class PandasCandleFeed(CandleFeed):
       first100_idx = dataframe.index[:100]
       if not (pd.Series(first100_idx).diff().dropna() == 1000).all():
         raise ValueError("Dataframe index is not 1 second apart")
-    elif timeframe_level is None:
+    else:
       raise NotImplementedError(f"{timeframe_level} timeframe validation not implemented yet")
 
     self.load_data(dataframe, timeframe_level)
@@ -65,7 +65,7 @@ class PandasCandleFeed(CandleFeed):
     else:
       raise ValueError(f"Unsupported timeframe: {timeframe}")
 
-  def get_position_index_list(self):
+  def get_position_index_list(self) -> List[int]:
     dataframe = None
     if self.timeframe_level == TimeframeType.sec1:
       dataframe = self.timeframe_s1
@@ -93,25 +93,59 @@ class PandasCandleFeed(CandleFeed):
     if dataframe is None:
       raise ValueError("No valid timeframe data available")
 
-    return dataframe.index
+    return dataframe.index # type: ignore
 
-  def sec1(self, position, *, offset:Optional[int]=0):
+  def get_ohlcv(self, position:int, *, timeframe:TimeframeType, offset:int=0, length:int=1)->Series[Any] | DataFrame:# type: ignore
+    match timeframe:
+      case TimeframeType.sec1:
+        return self.sec1(position, offset=offset, length=length)
+      case TimeframeType.min1:
+        return self.min1(position, offset=offset, length=length)
+      case TimeframeType.min5:
+        return self.min1(position, offset=offset, length=length)
+      case TimeframeType.min15:
+        return self.sec1(position, offset=offset, length=length)
+      case TimeframeType.h1:
+        return self.sec1(position, offset=offset, length=length)
+      case TimeframeType.h4:
+        return self.sec1(position, offset=offset, length=length)
+      case TimeframeType.d1:
+        return self.sec1(position, offset=offset, length=length)
+      case TimeframeType.w1:
+        return self.sec1(position, offset=offset, length=length)
+      case TimeframeType.mo1:
+        return self.sec1(position, offset=offset, length=length)
+      case TimeframeType.y1:
+        return self.sec1(position, offset=offset, length=length)
+      case _:
+        pass
+
+  def sec1(self, position:int, *, offset:int=0, length:int=1):
     if self.timeframe_s1 is None:
       raise ValueError("No sec1 timeframe data available")
     if self.timeframe_level.value > TimeframeType.sec1.value:
       raise ValueError(f"Current timeframe level {self.timeframe_level} is higher than sec1")
     
     if offset == 0:
-      return self.timeframe_s1.loc[position]
+      if length == 1:
+        return self.timeframe_s1.loc[position]
+      else:
+        start = position + (offset*1000*length)
+        return self.timeframe_s1.loc[start:position]
+          
     else:
-      return self.timeframe_s1.loc[position + (offset*1000)]
-
-  def min1(self, position, *, offset:Optional[int]=0):
+      if length == 1:
+        return self.timeframe_s1.loc[position + (offset*1000)]
+      else:
+        position = position + (offset*1000)
+        start = position + (offset*1000*length)
+        return self.timeframe_s1.loc[start:position]
+        
+  def min1(self, position:int, *, offset:Optional[int]=0, length:int=1):
     """ 获取1分钟时间框架的k线
 
     Args:
         position (_type_): 获取的位置
-        calc_enable (bool, optional): 是否启用计算秒级
 
     Raises:
         ValueError: _description_
@@ -148,7 +182,7 @@ class PandasCandleFeed(CandleFeed):
 
     return self.timeframe_min1.loc[position]
 
-  def min5(self, position, offset:Optional[int]=0):
+  def min5(self, position, offset:Optional[int]=0, length:int=1):
     """ 获取5分钟时间框架的k线
 
     Args:
@@ -194,7 +228,7 @@ class PandasCandleFeed(CandleFeed):
         position = position + self.timezone_offset + (offset * 1000 * 60 * 5)
         return self.timeframe_min5.loc[position]
 
-  def min15(self, position, offset:Optional[int]=0):
+  def min15(self, position, offset:Optional[int]=0, length:int=1):
       """ 获取15分钟时间框架的k线
 
       Args:
@@ -240,7 +274,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 15)
           return self.timeframe_min15.loc[position]
 
-  def h1(self, position, offset:Optional[int]=0):
+  def h1(self, position, offset:Optional[int]=0, length:int=1):
       """ 获取1小时 时间框架的k线
 
       Args:
@@ -286,7 +320,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60)
           return self.timeframe_h1.loc[position]
 
-  def h4(self, position, offset:Optional[int]=0):
+  def h4(self, position, offset:Optional[int]=0, length:int=1):
       """ 获取4小时 时间框架的k线
 
       Args:
@@ -332,7 +366,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 4)
           return self.timeframe_h4.loc[position]
 
-  def d1(self, position, offset:Optional[int]=0):
+  def d1(self, position, offset:Optional[int]=0, length:int=1):
       """ 获取1天时间框架的k线
 
       Args:
@@ -378,7 +412,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24)
           return self.timeframe_d1.loc[position]
 
-  def w1(self, position, offset:Optional[int]=0):
+  def w1(self, position, offset:Optional[int]=0,length:int=1):
       """ 获取1周时间框架的k线
 
       Args:
@@ -425,7 +459,7 @@ class PandasCandleFeed(CandleFeed):
           return self.timeframe_w1.loc[position]
 
 
-  def mo1(self, position, offset:Optional[int]=0):
+  def mo1(self, position, offset:Optional[int]=0, length:int=1):
       """ 获取1周时间框架的k线
 
       Args:
@@ -471,7 +505,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 30)
           return self.timeframe_mo1.loc[position]
 
-  def y1(self, position, offset:Optional[int]=0):
+  def y1(self, position, offset:Optional[int]=0, length:int=1):
       """ 获取1年时间框架的k线
 
       Args:
@@ -534,7 +568,7 @@ def load_dataframe_from_sql(*,
     sql_statement = f'SELECT `timestamp`, `open`, `high`, `low`, `close`, \
       `volume` FROM `t_{inst_id}_{timeframe}` WHERE `timestamp` BETWEEN {_start_date} AND {_end_date}'
       
-    df = pd.read_sql_query(sql_statement, conn, index_col='timestamp')
+    df = pd.read_sql_query(sql_statement, conn, index_col='timestamp') # type: ignore
 
 
   # df.index = pd.to_datetime(df.index, unit='ms', utc=True).tz_convert('UTC')  # 转换时间戳

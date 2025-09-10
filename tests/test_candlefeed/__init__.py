@@ -62,7 +62,7 @@ sol_usdt_1w = load_dataframe_from_sql(inst_id='SOL/USDT',
                                       end_date=end_start_date, 
                                       data_source_url="sqlite:///./tmp/app.db")
 sol_usdt_1mo = load_dataframe_from_sql(inst_id='SOL/USDT', 
-                                      timeframe='1month', 
+                                      timeframe='1mo', 
                                       start_date=test_start_date, 
                                       end_date=end_start_date, 
                                       data_source_url="sqlite:///./tmp/app.db")

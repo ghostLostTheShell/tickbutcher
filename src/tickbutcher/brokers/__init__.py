@@ -42,8 +42,9 @@ PositionStatusEventCallback = Callable[[PositionStatusEvent], None]
 
 class Broker(ABC):
   
+  name:str
   contemplationer:'Contemplationer'
-  
+  name:str
 
 
   @abstractmethod
@@ -51,7 +52,7 @@ class Broker(ABC):
     ...
     
   @abstractmethod 
-  def remove_pending_order(self, order:Order):
+  def remove_pending_order(self, order:'Order'):
     ...
       
   @abstractmethod

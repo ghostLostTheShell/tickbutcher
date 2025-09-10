@@ -1,7 +1,7 @@
 
 from datetime import datetime
 import unittest
-from tickbutcher.brokers import Broker
+from tickbutcher.brokers.common_broker import CommonBroker
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import PandasCandleFeed, load_dataframe_from_sql
 from tickbutcher.commission import MakerTakerCommission
@@ -32,10 +32,9 @@ class ContemplationerUnitTest(unittest.TestCase):
                                        dataframe=sol_usdt_1s_dataframe)
 
     
-    maker_taker_commission = MakerTakerCommission(maker_rate=0.0008, taker_rate=0.001)
+    _maker_taker_commission = MakerTakerCommission(maker_rate=8, taker_rate=10)
 
-    broker = Broker()
-    broker.set_commission(AssetType.PerpetualSwap, maker_taker_commission)
+    broker = CommonBroker()
     contemplationer = Contemplationer(timeframe_level=TimeframeType.sec1, brokers=[broker])
     contemplationer.add_kline(candleFeed=sol_candle_feed)
 

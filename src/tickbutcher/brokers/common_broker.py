@@ -21,6 +21,7 @@ class CommonBroker(Broker):
   order_pending_list: List[Order]
   _accounts:List[Account]
   tradingPair_commission_map: Dict[TradingPair, Commission]
+  name:str = "common_broker"
 
   def __init__(self):
     self.order_list = []
@@ -31,7 +32,7 @@ class CommonBroker(Broker):
     self.order_changed_event_listener = []
     self.position_changed_event_listener = [] 
     self.order_pending_list = []
-  
+    
   def add_pending_order(self, order:Order):
     if order.status is not OrderStatus.Pending and order.status is not OrderStatus.PartiallyFilled:
       raise ValueError("只能添加状态为Pending或PartiallyFilled的订单")

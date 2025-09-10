@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List
 from tickbutcher.brokers import Broker
+from tickbutcher.brokers.account import Account
+from tickbutcher.brokers.trading_pair import TradingPair
 
 class Strategy(ABC):
     
@@ -9,7 +10,7 @@ class Strategy(ABC):
     pass
 
   @abstractmethod
-  def add_broker(self, broker:List[Broker]):
+  def set_broker(self, broker:Broker):
     pass
 
 
@@ -18,23 +19,34 @@ class Strategy(ABC):
 class CommonStrategy(Strategy):
 
   broker:Broker
+  account:Account
   
+  def __init__(self):
+    super().__init__()
+    
   def next(self):
     pass
 
   def set_broker(self, broker: Broker):
     self.broker = broker
+  
+  def set_account(self, account:Account):
+    pass
     
   
   @property
   def candled(self):
     return self.broker.contemplationer.candle
 
-  def close_trade(self):
-    self.broker.close_trade()
+  def close_trade(self, trading_pair:TradingPair):
+    print("平仓")
 
   def buy(self):
-    self.broker.buy()
+    pass
+    # self.broker.submit_order(
+    #   account=self.account,
+    # )
     
   def sell(self):
-    self.broker.sell()
+    pass
+    # self.broker.sell()

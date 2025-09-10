@@ -6,7 +6,6 @@ from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import PandasCandleFeed
 from tickbutcher.brokers.trading_pair import common as common_trading_pair
 from tickbutcher.contemplationer import Contemplationer
-from tickbutcher.order import OrderSide, OrderStatus, OrderType
 
 
 class CommonBrokerTest(unittest.TestCase):
@@ -42,7 +41,7 @@ class CommonBrokerTest(unittest.TestCase):
     ontemplationer.add_kline(candleFeed=sol_candle_feed)
     _mock_ontemplationer = Mock(wraps=ontemplationer)
 
-    account = broker.register_account()
+    _account = broker.register_account()
     
     ontemplationer.current_time = solusdt_1s.index[0]
     
