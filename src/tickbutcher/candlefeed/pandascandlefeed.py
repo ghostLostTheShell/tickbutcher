@@ -140,8 +140,8 @@ class PandasCandleFeed(CandleFeed):
         position = position + (offset*1000)
         start = position + (offset*1000*length)
         return self.timeframe_s1.loc[start:position]
-        
-  def min1(self, position:int, *, offset:Optional[int]=0, length:int=1):
+
+  def min1(self, position:int, *, offset:int=0, length:int=1):
     """ 获取1分钟时间框架的k线
 
     Args:
@@ -163,6 +163,8 @@ class PandasCandleFeed(CandleFeed):
         if sec == 0:
           return self.sec1(position)
         else:
+          if self.timeframe_s1 is None:
+            raise ValueError("No sec1 timeframe data available")
           start_index = position - sec
           sum_volume = self.timeframe_s1.loc[start_index:position, "volume"].sum()
           high = self.timeframe_s1.loc[start_index:position, "high"].max()
@@ -182,7 +184,7 @@ class PandasCandleFeed(CandleFeed):
 
     return self.timeframe_min1.loc[position]
 
-  def min5(self, position, offset:Optional[int]=0, length:int=1):
+  def min5(self, position:int, offset:int=0, length:int=1):
     """ 获取5分钟时间框架的k线
 
     Args:
@@ -228,7 +230,7 @@ class PandasCandleFeed(CandleFeed):
         position = position + self.timezone_offset + (offset * 1000 * 60 * 5)
         return self.timeframe_min5.loc[position]
 
-  def min15(self, position, offset:Optional[int]=0, length:int=1):
+  def min15(self, position:int, offset:int=0, length:int=1):
       """ 获取15分钟时间框架的k线
 
       Args:
@@ -274,7 +276,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 15)
           return self.timeframe_min15.loc[position]
 
-  def h1(self, position, offset:Optional[int]=0, length:int=1):
+  def h1(self, position, offset:int=0, length:int=1):
       """ 获取1小时 时间框架的k线
 
       Args:
@@ -320,7 +322,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60)
           return self.timeframe_h1.loc[position]
 
-  def h4(self, position, offset:Optional[int]=0, length:int=1):
+  def h4(self, position:int, offset:int=0, length:int=1):
       """ 获取4小时 时间框架的k线
 
       Args:
@@ -366,7 +368,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 4)
           return self.timeframe_h4.loc[position]
 
-  def d1(self, position, offset:Optional[int]=0, length:int=1):
+  def d1(self, position:int, offset:int=0, length:int=1):
       """ 获取1天时间框架的k线
 
       Args:
@@ -412,7 +414,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24)
           return self.timeframe_d1.loc[position]
 
-  def w1(self, position, offset:Optional[int]=0,length:int=1):
+  def w1(self, position:int, offset:int=0,length:int=1):
       """ 获取1周时间框架的k线
 
       Args:
@@ -459,7 +461,7 @@ class PandasCandleFeed(CandleFeed):
           return self.timeframe_w1.loc[position]
 
 
-  def mo1(self, position, offset:Optional[int]=0, length:int=1):
+  def mo1(self, position:int, offset:int=0, length:int=1):
       """ 获取1周时间框架的k线
 
       Args:
@@ -505,7 +507,7 @@ class PandasCandleFeed(CandleFeed):
           position = position + self.timezone_offset + (offset * 1000 * 60 * 60 * 24 * 30)
           return self.timeframe_mo1.loc[position]
 
-  def y1(self, position, offset:Optional[int]=0, length:int=1):
+  def y1(self, position:int, offset:int=0, length:int=1):
       """ 获取1年时间框架的k线
 
       Args:

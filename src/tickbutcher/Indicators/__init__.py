@@ -1,4 +1,4 @@
-from typing import Deque, Dict, Generic, TypeVar
+from typing import Deque, Dict, Generic, Set, TypeVar
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.candlefeed import CandleFeed
@@ -10,10 +10,15 @@ class Indicator(Generic[R], object):
   contemplationer: 'Contemplationer'
   name:str
   result:Dict['TradingPair', Deque[R]]
-  
-  def __init__(self):
+  exclude_timeframes:Set[TimeframeType]
+
+  def __init__(self, *, exclude_timeframes:Set[TimeframeType]=set()):
     self.result={}
-  
+    self.exclude_timeframes = exclude_timeframes
+
+  def add_exclude_timeframe(self, timeframe: TimeframeType):
+    self.exclude_timeframes.add(timeframe)
+
   def init(self):
     pass
   
@@ -45,13 +50,14 @@ class Indicator(Generic[R], object):
     for candle in self.contemplationer.candle_list:
       timeframe_level = candle.timeframe_level.value
       while True:
-        if timeframe_level < 0:
+        if timeframe_level < 0 or timeframe_level < self.contemplationer.timeframe_level.value :
           break
-        self.calculate(position=self.contemplationer.current_time, 
-                       candle=candle, 
-                       timeframe=TimeframeType(timeframe_level))
+        timeframe = TimeframeType(timeframe_level)
+        if timeframe not in self.exclude_timeframes:
+          self.calculate(position=self.contemplationer.current_time, 
+                        candle=candle, 
+                        timeframe=TimeframeType(timeframe_level))
+          
         timeframe_level = timeframe_level-1
-        
-      
 
 
