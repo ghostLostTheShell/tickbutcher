@@ -138,18 +138,27 @@ class CommonBroker(Broker):
     
     # 清理已经完成的订单
 
-  def submit_order(self, *,
+  def submit_order(self, 
+                   *,
                   account: 'Account',
                   trading_pair: TradingPair,
                   order_type: OrderType,
                   side: OrderSide,
-                  trading_mode:'TradingMode',
                   quantity: float,
+                  trading_mode:Optional[TradingMode]=None,
                   pos_side: Optional['PosSide']=None,
-                  price: Optional[int] = None,
+                  price: Optional[float] = None,
                   reduce_only:Optional[bool]=None
                    ) -> None:
     # 创建订单
+    
+    if trading_mode is None:
+      match trading_pair.base.type:
+        case AssetType.PerpetualSwap:
+          trading_mode = TradingMode.Isolated
+        case _:
+          trading_mode = TradingMode.Spot
+  
 
     order = Order(
       trading_mode=trading_mode,

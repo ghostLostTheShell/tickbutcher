@@ -35,7 +35,7 @@ class Account(object):
   default_leverage:int
   asset_value_map: Dict['AssetType', float]
   trading_pair_leverage:Dict['TradingPair', int]
-  trading_pair_margin_type: Dict['TradingPair', 'MarginType'] # TODO 修改为仓位模式
+  trading_pair_margin_type: Dict['TradingPair', 'MarginType']
   #保证金相关的属性
   collateral_margin_list: List['CollateralMargin'] # 该账户下所有仓位的保证金
   _collateral_margin_map: Dict['Position', 'CollateralMargin']

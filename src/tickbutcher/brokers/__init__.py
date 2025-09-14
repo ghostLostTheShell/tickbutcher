@@ -72,10 +72,10 @@ class Broker(ABC):
                   trading_pair: 'TradingPair',
                   order_type: 'OrderType',
                   side: 'OrderSide',
-                  trading_mode: 'TradingMode',
                   quantity: float,
-                  pos_side: Optional['PosSide']=None,
-                  price: Optional[int] = None,
+                  trading_mode:'Optional[TradingMode]'=None,
+                  pos_side: 'Optional[PosSide]'=None,
+                  price: Optional[float] = None,
                   reduce_only:Optional[bool]=None
                   ) -> None:
     """

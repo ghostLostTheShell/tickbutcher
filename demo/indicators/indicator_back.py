@@ -1,11 +1,9 @@
-import re
+ # type: ignore
 from pandas import DataFrame
 import math
-import random
-from pandas import Period, read_json
-import test
+from pandas import read_json
 
-from tests.dataset import btc, sol
+from tests.dataset import btc
 
 class KData:
     def __init__(self, data: DataFrame):

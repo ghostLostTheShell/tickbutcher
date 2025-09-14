@@ -7,7 +7,7 @@ from tickbutcher.brokers.common_broker import CommonBroker
 from tickbutcher.brokers.trading_pair.common import SOLUSDTP
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import PandasCandleFeed
-from tickbutcher.strategys import CommonStrategy
+from tickbutcher.strategys.common_strategy import CommonStrategy
 
 
 
@@ -18,6 +18,9 @@ class TestStrategy(CommonStrategy):
     
     # _mfi.get_result()
     print(f"{self.candled.position}:: {self.candled.SOLUSDTP[0]} :: mfi:: {mfi.get_curret_result(SOLUSDTP)}")
+    
+    
+    
 
 solusdt_1s, solusdt_1min= get_sol_usdt_1s_and_1min()
 

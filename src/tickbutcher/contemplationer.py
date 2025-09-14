@@ -14,9 +14,11 @@ if TYPE_CHECKING:
   S = TypeVar("S", bound='Strategy')
   I = TypeVar("I", bound='Indicator[Any]')
   P = ParamSpec("P")
+  B = TypeVar("B", bound='Broker')
 
 class Contemplationer:
-  brokers: List['Broker']
+  brokers: 'List[Broker]'
+  brokers_map: 'Dict[Type[Broker], Broker]'
   strategys: List['Strategy']
   candle_list: List[CandleFeed]
   trading_pair_candle_table: Dict[TradingPair, CandleFeed]
@@ -36,6 +38,17 @@ class Contemplationer:
     for broker in brokers:
       broker.set_contemplationer(self)
 
+  def add_broker(self, broker:'Callable[P, Broker]', *args:'P.args', **kwargs:'P.kwargs'):
+    new_broker = broker(*args, **kwargs)
+    new_broker.set_contemplationer(self)
+    self.brokers.append(new_broker)
+
+  def get_broker(self, index: 'Type[B]') -> 'B':
+    b = self.brokers_map.get(index)
+    if b is None:
+      raise ValueError(f"Broker not found for type {index}")
+
+    return cast('B', b)
 
   def set_current_time(self, current_time: int):
     self.current_time = current_time
@@ -66,10 +79,13 @@ class Contemplationer:
 
   def run(self):
     time_interval = self.get_time_interval()
-            
-
+    
     for current_time in time_interval:
       self.set_current_time(current_time)
+      
+      for candle_feed in self.trading_pair_candle_table.values():
+        candle_feed.update(current_time)
+
       for indicator in self.indicators:
         indicator.next()
       

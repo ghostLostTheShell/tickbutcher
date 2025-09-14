@@ -1,7 +1,6 @@
 
 import enum
 from typing import Dict, Optional, Tuple
-
 from pandas import Series
 from tickbutcher.brokers.trading_pair import TradingPair
 
@@ -92,12 +91,20 @@ class CandleIndexer:
       
       
       if row_indexer == 0:
-        return  getattr(self.candlefeed, self.timeframe.name)(self.position) # type: ignore
+        return self.candlefeed.get_ohlcv(self.position, timeframe=self.timeframe) # type: ignore
 
       elif row_indexer > 0:
         raise IndexError("Index out of range")
       else:
-        return  getattr(self.candlefeed, self.timeframe.name)(self.position, offset=row_indexer) # type: ignore
-        
+        return  self.candlefeed.get_ohlcv(self.position, offset=row_indexer) # type: ignore
+
+
+NONE_SERIES = Series({
+  "volume": None,
+  "high": None,
+  "low": None,
+  "close": None,
+  "open": None
   
-__all__ = ['CandleFeed', 'TimeframeType', 'CandleIndexer']
+})
+__all__ = ['CandleFeed', 'TimeframeType', 'CandleIndexer', 'NONE_SERIES']

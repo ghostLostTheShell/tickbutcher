@@ -1,15 +1,31 @@
+from enum import Enum
 from typing import Deque, Dict, Generic, Set, TypeVar
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.candlefeed import CandleFeed
 from tickbutcher.contemplationer import Contemplationer
 
+class DivergenceSignalState(Enum):
+  NONE = 0
+  BULLISH = 1   # 底背离
+  BEARISH = -1  # 顶背离
+
+V = TypeVar("V")
+class PosValue(Generic[V]):
+  """位置和值的组合"""
+  position:int
+  value:V
+
+  def __init__(self, position:int, value:V):
+    self.position = position
+    self.value = value
+
 R = TypeVar("R")
 
 class Indicator(Generic[R], object):
   contemplationer: 'Contemplationer'
   name:str
-  result:Dict['TradingPair', Deque[R]]
+  result:Dict['TradingPair', Deque[PosValue[R]]]
   exclude_timeframes:Set[TimeframeType]
 
   def __init__(self, *, exclude_timeframes:Set[TimeframeType]=set()):
@@ -61,3 +77,8 @@ class Indicator(Generic[R], object):
         timeframe_level = timeframe_level-1
 
 
+  def is_long_signal(self, trading_pair: TradingPair) -> bool:
+    return False
+
+  def is_short_signal(self, trading_pair: TradingPair) -> bool:
+    return False
