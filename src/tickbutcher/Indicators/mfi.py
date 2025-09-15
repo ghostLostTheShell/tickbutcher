@@ -3,7 +3,9 @@ MFI(资金流量指标,Money Flow Index)
 """
 
 from collections import deque
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Deque, Dict
+from typing_extensions import Literal
 from tickbutcher.Indicators import DivergenceSignalState, Indicator, PosValue
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.candlefeed import CandleFeed
@@ -11,13 +13,16 @@ from tickbutcher.candlefeed.candlefeed import CandleFeed
 if TYPE_CHECKING:
   from tickbutcher.brokers.trading_pair import TradingPair
 
-class MFIResult:
-  value:float
-  signal_strength:int
+class MFIResult(PosValue[float]):
+  signal_strength:float
   divergence_signal:DivergenceSignalState
-  
-  def __init__(self, value:float, signal_strength:int, divergence_signal:DivergenceSignalState):
-    self.value = value
+
+  def __init__(self, 
+               position:int, 
+               value:float, 
+               signal_strength:float, 
+               divergence_signal:DivergenceSignalState,):
+    super().__init__(position=position, value=value)
     self.signal_strength = signal_strength
     self.divergence_signal = divergence_signal
     
@@ -28,16 +33,25 @@ class MoneyFlowIndex(Indicator[MFIResult]):
   _neg_mf:Dict['TradingPair', Deque[PosValue[float]]]
   period:int
   result_maxlen:int
+  trend_strength_handle: Callable[['TradingPair'], float]
   
-  def __init__(self, *, period:int=14, result_maxlen:int=50):
+  def __init__(self, *, 
+               period:int=14, 
+               result_maxlen:int=50,
+               trend_strength_mode:Literal['instant', 'avg']= 'avg'):
     super().__init__()
     self._tp_window = {}
     self._pos_mf = {}
     self._neg_mf = {}
     self.period = period
     self.result_maxlen = result_maxlen
-    
-  
+
+    match trend_strength_mode:
+      case 'avg':
+        self.trend_strength_handle = self._trend_strength_avg
+      case 'instant':
+        raise NotImplementedError("即时趋势强度计算未实现")
+
   def init(self):
     for candle in self.contemplationer.candle_list:
       self._tp_window[candle.trading_pair] = deque(maxlen=self.period)
@@ -127,23 +141,39 @@ class MoneyFlowIndex(Indicator[MFIResult]):
 
     result=self.get_result(trading_pair)
 
-    divergence_signal = self.detect_divergence()
+    divergence_signal = self.detect_divergence(trading_pair)
+  
     mfi_result = MFIResult(
+        position=series_p,
         value=value,
         signal_strength=0,
         divergence_signal=divergence_signal
     )
 
     if len(result) == 0 or result[-1].position != series_p:
-        result.append(PosValue(position=series_p, value=mfi_result))
+        result.append(mfi_result)
     else:
-        result[-1] = PosValue(position=series_p, value=mfi_result)
-            
-  def detect_divergence(self) -> DivergenceSignalState:
+        result[-1] = mfi_result
+        
+    mfi_result.signal_strength = self.trend_strength_handle(trading_pair)
+        
+      
+  def _trend_strength_avg(self, trading_pair: 'TradingPair') -> float:
+    result = self.get_result(trading_pair)
+    if not result:
+        return 0.0
+    avg = sum(i.value for i in result) / len(result)
+    # 归一化到 [-1, 1] 区间
+    norm = (avg - 50) / 30
+    return round(norm, 2)
+
+  def detect_divergence(self, trading_pair: 'TradingPair') -> DivergenceSignalState:
     """
     简单背离检测：找最近 lookback 范围的局部极值
     """
-    if len(self.result) < self.result_maxlen:
+    result=self.get_result(trading_pair)
+    # lookback = 
+    if len(result) < self.period:
         return DivergenceSignalState.NONE
 
     # prices = self.price_history

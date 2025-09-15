@@ -7,8 +7,10 @@ BTCUSDT = TradingPair(
     quote=common_financial.USDT,
     symbol="BTC/USDT",
     id="BTCUSDT",
-    base_amount_precision=7,
-    base_precision=1
+    base_precision=8,
+    quote_precision=8,
+    baseCommissionPrecision=8,
+    quoteCommissionPrecision=8
 )
 
 ETHUSDT = TradingPair(
@@ -28,30 +30,36 @@ SOLUSDT = TradingPair(
 
 # 永续合约交易对
 BTCUSDTP = TradingPair(
-    base=common_financial.BTC,
+    base=common_financial.BTCUSDT_P,
     quote=common_financial.USDT,
     symbol="BTC/USDT@p",
     id="BTCUSDTP",
-    base_amount_precision=7,
-    base_precision=1
+    base_precision=8,
+    quote_precision=8,
+    baseCommissionPrecision=8,
+    quoteCommissionPrecision=8
 )
 
 ETHUSDTP = TradingPair(
-    base=common_financial.ETH,
+    base=common_financial.ETHUSDT_P,
     quote=common_financial.USDT,
     symbol="ETH/USDT@p",
     id="ETHUSDTP",
-    base_amount_precision=7,
-    base_precision=1
+    base_precision=8,
+    quote_precision=8,
+    baseCommissionPrecision=8,
+    quoteCommissionPrecision=8
 )
 
 SOLUSDTP = TradingPair(
-    base=common_financial.SOL,
+    base=common_financial.SOLUSDT_P,
     quote=common_financial.USDT,
     symbol="SOL/USDT@p",
     id="SOLUSDTP",
-    base_amount_precision=2,
-    base_precision=2
+    base_precision=8,
+    quote_precision=8,
+    baseCommissionPrecision=8,
+    quoteCommissionPrecision=8
 )
 
 # 法币对

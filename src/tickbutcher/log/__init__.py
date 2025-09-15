@@ -20,10 +20,10 @@ def init_file_handler():
 ch_handler = logging.StreamHandler()
 ch_handler.setFormatter(COLOR_FORMATTER)
 
-logger = logging.getLogger("root")
+logger = logging.getLogger("tickbutcher")
 # logger.addHandler(file_handler)
 logger.addHandler(ch_handler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 def file_logger_enable():
   if file_handler is None:
@@ -34,4 +34,4 @@ def file_logger_enable():
 def file_logger_disable():
     logger.removeHandler(file_handler) # type: ignore
 
-__all__ = ["logger"]
+__all__ = ["logger", "ch_handler"]

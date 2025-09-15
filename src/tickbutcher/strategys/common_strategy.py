@@ -1,6 +1,5 @@
 from tickbutcher.brokers import Broker
 from tickbutcher.brokers.account import Account
-from tickbutcher.brokers.common_broker import CommonBroker
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.order import OrderSide, OrderType, PosSide, TradingMode
 from tickbutcher.products import AssetType
@@ -14,12 +13,12 @@ class CommonStrategy(Strategy):
   account:Account
   
   
-  def __init__(self):
+  def __init__(self, ):
     pass
     
   def init(self):
-    self.broker = self.contemplationer.get_broker(CommonBroker)
-    self.account = self.broker.register_account()
+    self.broker = self.contemplationer.default_broker
+    self.account = self.contemplationer.default_account
    
   def next(self):
     pass
@@ -38,6 +37,7 @@ class CommonStrategy(Strategy):
           trading_mode = TradingMode.Spot
           
     return self.account.get_open_position(trading_pair, pos_side=pos_side, trading_mode=trading_mode)
+
 
   # 交易相关的方法
   def long_entry(self, 

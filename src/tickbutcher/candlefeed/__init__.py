@@ -1,4 +1,5 @@
 
+from datetime import datetime, timezone
 import enum
 from typing import Dict, Optional, Tuple
 from pandas import Series
@@ -97,6 +98,11 @@ class CandleIndexer:
         raise IndexError("Index out of range")
       else:
         return  self.candlefeed.get_ohlcv(self.position, offset=row_indexer) # type: ignore
+
+  def get_iso_datetime(self) -> str:
+    if self.candlefeed is not None:
+      return datetime.fromtimestamp(self.position, tz=self.candlefeed.timezone).isoformat()
+    return datetime.fromtimestamp(self.position, tz=timezone.utc).isoformat()
 
 
 NONE_SERIES = Series({

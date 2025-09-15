@@ -2,13 +2,11 @@
 import argparse
 import asyncio
 import os
-import ccxt
 from sqlalchemy import *
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import *
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.ext.asyncio import async_sessionmaker
-
 
 
 DATA_SOURCE_URL = os.environ.get("DATA_SOURCE_URL") 
@@ -130,8 +128,14 @@ async def main():
         await conn.run_sync(DataEntity.metadata.create_all)
   
   # 初始化ccxt连接
-  exchange = getattr(ccxt, exchange_name)()
+  if exchange_name == 'binance':
+      from . import Binance
+      exchange = Binance()
+  else:
+    raise Exception(f"不支持的交易所: {exchange_name}")
+  
   await record_data(code, exchange, timeframe=timeframe, start_date=start_date, end_date=end_date)
+
 
 
 if __name__ == "__main__":

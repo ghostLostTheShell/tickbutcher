@@ -25,7 +25,7 @@ R = TypeVar("R")
 class Indicator(Generic[R], object):
   contemplationer: 'Contemplationer'
   name:str
-  result:Dict['TradingPair', Deque[PosValue[R]]]
+  result:Dict['TradingPair', Deque[R]]
   exclude_timeframes:Set[TimeframeType]
 
   def __init__(self, *, exclude_timeframes:Set[TimeframeType]=set()):

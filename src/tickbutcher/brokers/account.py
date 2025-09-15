@@ -9,6 +9,7 @@ from tickbutcher.order import OrderSide, OrderStatus, OrderType
 
 
 
+
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
   from tickbutcher.brokers import Broker
@@ -18,22 +19,23 @@ if TYPE_CHECKING:
   from tickbutcher.order import PosSide, TradingMode
   from tickbutcher.brokers.margin import MarginType
   from tickbutcher.products import AssetType
+  from tickbutcher.products import FinancialInstrument
 
 class CollateralMargin:
   """账户下某个仓位的保证金信息"""
   position: 'Position'
   amount: float
-  asset_type: 'AssetType'
+  instrument: 'FinancialInstrument'
 
-  def __init__(self, position: 'Position', amount: float, asset_type: 'AssetType'):
+  def __init__(self, position: 'Position', amount: float, instrument: 'FinancialInstrument'):
     self.position = position
     self.amount = amount
-    self.asset_type = asset_type
+    self.instrument = instrument
     
 class Account(object):
   id: int
   default_leverage:int
-  asset_value_map: Dict['AssetType', float]
+  instrument_value_map: Dict['FinancialInstrument', float]
   trading_pair_leverage:Dict['TradingPair', int]
   trading_pair_margin_type: Dict['TradingPair', 'MarginType']
   #保证金相关的属性
@@ -47,7 +49,7 @@ class Account(object):
 
   def __init__(self, *, id: int, broker:'Broker'):
     self.id = id
-    self.asset_value_map = {}
+    self.instrument_value_map = {}
     self.trading_pair_leverage = {}
     self.default_leverage = 1
     self.order_list = set()
@@ -70,7 +72,7 @@ class Account(object):
       collateral_margin = CollateralMargin(
           position=position,
           amount=amount,
-          asset_type=position.trading_pair.quote.type
+          instrument=position.trading_pair.quote
       )
       self.collateral_margin_list.append(collateral_margin)
       self._collateral_margin_map[position] = collateral_margin
@@ -130,11 +132,11 @@ class Account(object):
 
         # 进行交易
         if order.comm_settle_asset is order.trading_pair.base:
-          self.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
+          self.deposit(order.execution_quantity - order.commission, trading_pair.base)  
         else: 
-          self.deposit(order.execution_quantity, trading_pair.base.type)
-        
-        
+          self.deposit(order.execution_quantity, trading_pair.base)
+
+
         order.status = OrderStatus.Completed
         self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
         position.add_order(order)
@@ -162,7 +164,7 @@ class Account(object):
       # 全仓模式
       case (TradingMode.Cross, PosSide.Long, OrderSide.Buy):
         # 全仓模式下，开多仓
-        self.deposit(order.execution_quantity * order.execution_price, trading_pair.quote.type)
+        self.deposit(order.execution_quantity * order.execution_price, trading_pair.quote)
         pass
       case (TradingMode.Cross, PosSide.Long, OrderSide.Sell):
         # 全仓模式下，平多仓
@@ -198,9 +200,9 @@ class Account(object):
     match order.side:
       case OrderSide.Buy:
         if order.comm_settle_asset is order.trading_pair.base:
-          self.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
+          self.deposit(order.execution_quantity - order.commission, trading_pair.base)  
         else: 
-          self.deposit(order.execution_quantity, trading_pair.base.type)
+          self.deposit(order.execution_quantity, trading_pair.base)
           
         position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
         
@@ -225,9 +227,9 @@ class Account(object):
           raise SystemError(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
         
         if order.comm_settle_asset is order.trading_pair.quote:
-          self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote.type)  
-        else: 
-          self.deposit(order.execution_price * order.execution_quantity, trading_pair.quote.type)
+          self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote)
+        else:
+          self.deposit(order.execution_price * order.execution_quantity, trading_pair.quote)
 
         position.add_order(order)
         if not position.is_closed():
@@ -261,9 +263,9 @@ class Account(object):
       case OrderSide.Buy:
         if order.price >= current.close:
           if order.comm_settle_asset is order.trading_pair.base:
-            self.deposit(order.execution_quantity - order.commission, trading_pair.base.type)  
+            self.deposit(order.execution_quantity - order.commission, trading_pair.base)
           else: 
-            self.deposit(order.execution_quantity, trading_pair.base.type)
+            self.deposit(order.execution_quantity, trading_pair.base)
             
           position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
           
@@ -292,9 +294,9 @@ class Account(object):
             raise SystemError(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
           
           if order.comm_settle_asset is order.trading_pair.quote:
-            self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote.type)  
+            self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote)  
           else: 
-            self.deposit(order.execution_price * order.execution_quantity, trading_pair.quote.type)
+            self.deposit(order.execution_price * order.execution_quantity, trading_pair.quote)
 
           position.add_order(order)
           if not position.is_closed():
@@ -332,15 +334,15 @@ class Account(object):
         raise ValueError(f"不支持的订单类型: {order.order_type} for {order.trading_pair.base.type}")
 
   # 查询可用资产
-  def get_available_asset(self, asset_type: 'AssetType') -> float:
+  def get_available_instrument(self, instrument: 'FinancialInstrument') -> float:
     for collateral_margin in self.collateral_margin_list:
-      if collateral_margin.asset_type == asset_type:
+      if collateral_margin.instrument == instrument:
         margin = collateral_margin.amount
         break
     else:
       margin = 0.0
 
-    return self.asset_value_map.get(asset_type, 0.0) - margin
+    return self.instrument_value_map.get(instrument, 0.0) - margin
 
   def set_margin_type(self, margin_type: 'MarginType', trading_pair: 'TradingPair'):
     self.trading_pair_margin_type[trading_pair] = margin_type
@@ -361,17 +363,17 @@ class Account(object):
       
     return self.trading_pair_leverage.get(trading_pair, self.default_leverage)  
 
-  def deposit(self, amount: float, asset_type: 'AssetType', ):
+  def deposit(self, amount: float, instrument: 'FinancialInstrument'):
     """
     存入
     """
-    self.asset_value_map[asset_type] = self.asset_value_map.get(asset_type, 0) + amount
+    self.instrument_value_map[instrument] = self.instrument_value_map.get(instrument, 0) + amount
 
-  def withdraw(self, amount: float, asset_type: 'AssetType', ):
+  def withdraw(self, amount: float, instrument: 'FinancialInstrument', ):
     """
     取出
     """
-    self.asset_value_map[asset_type] = self.asset_value_map.get(asset_type, 0) - amount
+    self.instrument_value_map[instrument] = self.instrument_value_map.get(instrument, 0) - amount
 
   def get_open_position(self, 
                    trading_pair: 'TradingPair', 
