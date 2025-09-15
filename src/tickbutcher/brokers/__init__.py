@@ -7,7 +7,7 @@ from tickbutcher.order import PosSide
 
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
-  from tickbutcher.contemplationer import Contemplationer
+  from tickbutcher.alphahub import AlphaHub
   from tickbutcher.brokers.account import Account
   from tickbutcher.brokers.position import Position
   from tickbutcher.order import Order, OrderType, OrderSide, OrderStatus,TradingMode
@@ -43,7 +43,7 @@ PositionStatusEventCallback = Callable[[PositionStatusEvent], None]
 class Broker(ABC):
   
   name:str
-  contemplationer:'Contemplationer'
+  alpha_hub:'AlphaHub'
   name:str
 
 
@@ -88,11 +88,11 @@ class Broker(ABC):
     pass
 
   @abstractmethod
-  def set_contemplationer(self, contemplationer: 'Contemplationer'):
+  def set_alpha_hub(self, alpha_hub: 'AlphaHub'):
     pass
   
   @abstractmethod
-  def get_contemplationer(self) -> 'Contemplationer':
+  def get_alpha_hub(self) -> 'AlphaHub':
     ...
 
   @abstractmethod

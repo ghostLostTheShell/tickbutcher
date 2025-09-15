@@ -3,7 +3,7 @@ from typing import Deque, Dict, Generic, Set, TypeVar
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.candlefeed import CandleFeed
-from tickbutcher.contemplationer import Contemplationer
+from tickbutcher.alphahub import AlphaHub
 
 class DivergenceSignalState(Enum):
   NONE = 0
@@ -23,7 +23,7 @@ class PosValue(Generic[V]):
 R = TypeVar("R")
 
 class Indicator(Generic[R], object):
-  contemplationer: 'Contemplationer'
+  AlphaHub: 'AlphaHub'
   name:str
   result:Dict['TradingPair', Deque[R]]
   exclude_timeframes:Set[TimeframeType]
@@ -38,8 +38,8 @@ class Indicator(Generic[R], object):
   def init(self):
     pass
   
-  def set_contemplationer(self, contemplationer: 'Contemplationer'):
-    self.contemplationer = contemplationer
+  def set_alpha_hub(self, AlphaHub: 'AlphaHub'):
+    self.AlphaHub = AlphaHub
 
   def get_result(self, trading_pair:'TradingPair'):
     value = self.result.get(trading_pair)
@@ -63,14 +63,14 @@ class Indicator(Generic[R], object):
 
   
   def next(self):
-    for candle in self.contemplationer.candle_list:
+    for candle in self.AlphaHub.candle_list:
       timeframe_level = candle.timeframe_level.value
       while True:
-        if timeframe_level < 0 or timeframe_level < self.contemplationer.timeframe_level.value :
+        if timeframe_level < 0 or timeframe_level < self.AlphaHub.timeframe_level.value :
           break
         timeframe = TimeframeType(timeframe_level)
         if timeframe not in self.exclude_timeframes:
-          self.calculate(position=self.contemplationer.current_time, 
+          self.calculate(position=self.AlphaHub.current_time, 
                         candle=candle, 
                         timeframe=TimeframeType(timeframe_level))
           

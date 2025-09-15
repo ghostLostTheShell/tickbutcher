@@ -17,15 +17,15 @@ class CommonStrategy(Strategy):
     pass
     
   def init(self):
-    self.broker = self.contemplationer.default_broker
-    self.account = self.contemplationer.default_account
+    self.broker = self.alpha_hub.default_broker
+    self.account = self.alpha_hub.default_account
    
   def next(self):
     pass
     
   @property
   def candled(self):
-    return self.contemplationer.candle
+    return self.alpha_hub.candle
 
 
   def get_open_position(self, trading_pair: TradingPair, pos_side:PosSide, trading_mode:Optional[TradingMode]=None):

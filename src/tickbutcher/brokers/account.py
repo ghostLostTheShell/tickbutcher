@@ -6,19 +6,17 @@ from tickbutcher.brokers import OrderStatusEvent
 from tickbutcher.commission import CommissionType
 from tickbutcher.log import logger
 from tickbutcher.order import OrderSide, OrderStatus, OrderType
-
-
-
+from tickbutcher.products import AssetType
+from tickbutcher.order import PosSide, TradingMode
+from tickbutcher.brokers.position import Position
 
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
   from tickbutcher.brokers import Broker
-  from tickbutcher.brokers.position import Position
+  
   from tickbutcher.brokers.trading_pair import TradingPair
   from tickbutcher.order import Order
-  from tickbutcher.order import PosSide, TradingMode
   from tickbutcher.brokers.margin import MarginType
-  from tickbutcher.products import AssetType
   from tickbutcher.products import FinancialInstrument
 
 class CollateralMargin:
@@ -93,7 +91,7 @@ class Account(object):
     """处理永续合约市价单"""
     
     trading_pair = order.trading_pair
-    current = self.broker.get_contemplationer().candle[0, order.trading_pair.id]
+    current = self.broker.get_alpha_hub().candle[0, order.trading_pair.id]
     order.execution_price = current.close
     order.execution_quantity = order.quantity
     #计算本次交易的手续费
@@ -183,7 +181,7 @@ class Account(object):
   def handle_spot_market_order(self, order: 'Order'):
     """处理现货市价单"""
     trading_pair = order.trading_pair
-    current = self.broker.get_contemplationer().candle[0, order.trading_pair.id]
+    current = self.broker.get_alpha_hub().candle[0, order.trading_pair.id]
     order.execution_price = current.close
     order.execution_quantity = order.quantity
     #计算本次交易的手续费
@@ -244,7 +242,7 @@ class Account(object):
   def handle_spot_limit_order(self, order: 'Order'):
     """处理现货限价单"""
     trading_pair = order.trading_pair
-    current = self.broker.get_contemplationer().candle[0, order.trading_pair.id]
+    current = self.broker.get_alpha_hub().candle[0, order.trading_pair.id]
     order.execution_price = current.close
     order.execution_quantity = order.quantity
     #计算本次交易的手续费

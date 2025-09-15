@@ -53,7 +53,7 @@ class MoneyFlowIndex(Indicator[MFIResult]):
         raise NotImplementedError("即时趋势强度计算未实现")
 
   def init(self):
-    for candle in self.contemplationer.candle_list:
+    for candle in self.AlphaHub.candle_list:
       self._tp_window[candle.trading_pair] = deque(maxlen=self.period)
       self._pos_mf[candle.trading_pair] = deque(maxlen=self.period)
       self._neg_mf[candle.trading_pair] = deque(maxlen=self.period)

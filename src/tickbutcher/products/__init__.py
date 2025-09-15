@@ -22,6 +22,7 @@ class FinancialInstrument():
   
   symbol:str
   type:AssetType
+  precision:int = 2
 
   def __new__(cls, *args: object, **kwargs: object) -> "FinancialInstrument":
     symbol:str = kwargs.get("symbol") # type: ignore
@@ -38,6 +39,7 @@ class FinancialInstrument():
 
     return cls.__all__symbol_instances_table[symbol]
 
-  def __init__(self, *, symbol: str, type: AssetType): # type: ignore
+  def __init__(self, *, symbol: str, type: AssetType, precision: int=2): # type: ignore
     self.symbol = symbol
     self.type = type
+    self.precision = precision

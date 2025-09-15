@@ -1,21 +1,21 @@
 
 import unittest
 from tests.dataset import get_sol_usdt_1s_and_1min
+from tickbutcher.alphahub import AlphaHub
 from tickbutcher.brokers.common_broker import CommonBroker
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import PandasCandleFeed
-from tickbutcher.contemplationer import Contemplationer
 from tickbutcher.brokers.trading_pair import common as common_trading_pair
 from tickbutcher.log import logger
 from tickbutcher.order import OrderType
 from tickbutcher.strategys.common_strategy import CommonStrategy
 from tickbutcher.Indicators.mfi import MoneyFlowIndex
-
+from tickbutcher.products import common as common_product
 
 class TestStrategy(CommonStrategy):
   
   def next(self):
-    mfi = self.contemplationer.get_indicator('mfi', MoneyFlowIndex) 
+    mfi = self.alpha_hub.get_indicator('mfi', MoneyFlowIndex) 
     mfi_result = mfi.get_curret_result(common_trading_pair.SOLUSDT)
     solusdt = self.candled.SOLUSDT
     if mfi_result is None:
@@ -36,7 +36,7 @@ class TestStrategy(CommonStrategy):
 
     # logger.info(f"{self.candled.position}:: {self.candled.SOLUSDTP[0]} :: mfi:: {mfi_result.value}")
 
-class ContemplationerUnitTest(unittest.TestCase):
+class AlphaHubUnitTest(unittest.TestCase):
   def test_int_time_interval(self):
     self.assertEqual('yes', 'yes')
   
@@ -48,9 +48,12 @@ class ContemplationerUnitTest(unittest.TestCase):
                                     timeframe_level=TimeframeType.min1,
                                     dataframe=solusdt_1min)
     
-    ontemplationer = Contemplationer(timeframe_level=TimeframeType.min1)
-
+    ontemplationer = AlphaHub(timeframe_level=TimeframeType.min1)
     ontemplationer.add_broker(CommonBroker)
+    ontemplationer.add_instrument_amount(amount=1000, instrument=common_product.USDT)
+    ontemplationer.add_instrument_amount(amount=1000, instrument=common_product.BTC)
+    ontemplationer.add_instrument_amount(amount=1000, instrument=common_product.ETH)
+    
     ontemplationer.add_kline(candleFeed=sol_candle_feed)
 
     ontemplationer.add_strategy(TestStrategy)

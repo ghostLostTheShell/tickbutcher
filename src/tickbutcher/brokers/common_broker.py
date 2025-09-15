@@ -8,12 +8,13 @@ from tickbutcher.commission import Commission, CommissionType, MakerTakerCommiss
 from tickbutcher.order import Order, OrderStatus, OrderType, OrderSide
 from tickbutcher.brokers import Broker, OrderStatusEventCallback, PositionStatusEvent, OrderStatusEvent, PositionStatusEventCallback
 from tickbutcher.products import AssetType
+from tickbutcher.order import PosSide,TradingMode
 
 if TYPE_CHECKING:
-  from tickbutcher.contemplationer import Contemplationer
-  from tickbutcher.order import PosSide,TradingMode
+  from tickbutcher.alphahub import AlphaHub
+
 class CommonBroker(Broker):
-  contemplationer:'Contemplationer'
+  alpha_hub:'AlphaHub'
   order_changed_event_listener: List[OrderStatusEventCallback]
   position_changed_event_listener: List[PositionStatusEventCallback]
   order_list: List[Order]
@@ -32,6 +33,7 @@ class CommonBroker(Broker):
     self.order_changed_event_listener = []
     self.position_changed_event_listener = [] 
     self.order_pending_list = []
+    self.tradingPair_commission_map = {}
     
   def add_pending_order(self, order:Order):
     if order.status is not OrderStatus.Pending and order.status is not OrderStatus.PartiallyFilled:
@@ -68,11 +70,12 @@ class CommonBroker(Broker):
     account = Account(id=account_id, broker=self)
     self._accounts.append(account)
     return account
-    
-  def set_contemplationer(self, contemplationer: 'Contemplationer'):
-    self.contemplationer = contemplationer
-  def get_contemplationer(self) -> 'Contemplationer':
-    return self.contemplationer
+
+  def set_alpha_hub(self, alpha_hub: 'AlphaHub'):
+    self.alpha_hub = alpha_hub
+
+  def get_alpha_hub(self) -> 'AlphaHub':
+    return self.alpha_hub
 
   def trigger_order_changed_event(self, event: OrderStatusEvent):
     """
@@ -173,7 +176,7 @@ class CommonBroker(Broker):
     )
     
     order.status = OrderStatus.Created
-    order.created_at = self.contemplationer.current_time
+    order.created_at = self.alpha_hub.current_time
     order.set_id(self.generate_order_id())
     self.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=OrderStatus.Created))
     

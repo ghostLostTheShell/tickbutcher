@@ -4,15 +4,15 @@ from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.order import OrderType, TradingMode
 
 if TYPE_CHECKING:
-  from tickbutcher.contemplationer import Contemplationer
+  from tickbutcher.alphahub import AlphaHub
 class Strategy(ABC):
-  contemplationer: 'Contemplationer'
+  alpha_hub: 'AlphaHub'
   
   @abstractmethod
   def next(self): ...
   
-  def set_contemplationer(self, contemplationer: 'Contemplationer'):
-    self.contemplationer = contemplationer
+  def set_alpha_hub(self, alpha_hub: 'AlphaHub'):
+    self.alpha_hub = alpha_hub
 
   @abstractmethod
   def init(self): ...

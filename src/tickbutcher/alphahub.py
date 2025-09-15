@@ -19,7 +19,7 @@ if TYPE_CHECKING:
   P = ParamSpec("P")
   B = TypeVar("B", bound='Broker')
 
-class Contemplationer:
+class AlphaHub:
   default_broker: 'Broker'
   default_account: 'Account'
   brokers: 'List[Broker]'
@@ -52,7 +52,7 @@ class Contemplationer:
 
   def add_broker(self, broker:'Callable[P, Broker]', *args:'P.args', **kwargs:'P.kwargs'):
     new_broker = broker(*args, **kwargs)
-    new_broker.set_contemplationer(self)
+    new_broker.set_alpha_hub(self)
     if len(self.brokers) == 0:
       self.default_broker = new_broker
       self.default_account = new_broker.register_account()
@@ -72,7 +72,7 @@ class Contemplationer:
 
   def add_indicator(self, indicator:'Callable[P, Indicator[Any]]', *args:'P.args', **kwargs:'P.kwargs') -> None:
     new_indicator = indicator(*args, **kwargs)
-    new_indicator.set_contemplationer(self)
+    new_indicator.set_alpha_hub(self)
     new_indicator.init()
     self.indicators.append(new_indicator)
     self.indicators_map[new_indicator.name] = new_indicator
@@ -80,13 +80,13 @@ class Contemplationer:
 
   def add_strategy(self, strategy:'Callable[P, S]', *args:'P.args', **kwargs:'P.kwargs') -> None:
     new_strategy = strategy(*args, **kwargs)
-    new_strategy.set_contemplationer(self)
+    new_strategy.set_alpha_hub(self)
     new_strategy.init()
     self.strategys.append(new_strategy)
 
   def add_kline(self, *, candleFeed:CandleFeed):
     if candleFeed.timeframe_level != self.timeframe_level:
-      raise ValueError(f"CandleFeed timeframe {candleFeed.timeframe_level} does not match Contemplationer timeframe {self.timeframe_level}")
+      raise ValueError(f"CandleFeed timeframe {candleFeed.timeframe_level} does not match AlphaHub timeframe {self.timeframe_level}")
     self.candle_list.append(candleFeed)
     self.trading_pair_candle_table[candleFeed.trading_pair] = candleFeed
 

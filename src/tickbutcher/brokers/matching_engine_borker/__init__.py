@@ -31,7 +31,7 @@ Broker是代理方，负责执行指令。Broker有法律义务以最佳可能�
 from typing import Dict, List
 from tickbutcher.brokers import Broker
 from tickbutcher.commission import Commission
-from tickbutcher.contemplationer import Contemplationer
+from tickbutcher.AlphaHub import AlphaHub
 from tickbutcher.order import Order, OrderStatus, OrderSide
 from tickbutcher.products import AssetType
 
@@ -40,7 +40,7 @@ class MatchingEngineBroker(Broker):
   broker_name:str
   trade_positions:List
   orders:List
-  contemplationer:'Contemplationer'
+  AlphaHub:'AlphaHub'
   commission_table:Dict[AssetType, Commission]
 
 

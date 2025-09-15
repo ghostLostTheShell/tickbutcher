@@ -1,17 +1,18 @@
 import unittest
 from unittest.mock import Mock
 from tests.dataset import get_sol_usdt_1s_and_1min
+from tickbutcher.alphahub import AlphaHub
 from tickbutcher.brokers.common_broker import CommonBroker
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import PandasCandleFeed
 from tickbutcher.brokers.trading_pair import common as common_trading_pair
-from tickbutcher.contemplationer import Contemplationer
+
 
 
 class CommonBrokerTest(unittest.TestCase):
 
-  def get_ontemplationer_on_candle_feed(self, candle_feed:PandasCandleFeed) -> Contemplationer:
-    """获取一个 mock 的 Contemplationer 对象
+  def get_ontemplationer_on_candle_feed(self, candle_feed:PandasCandleFeed) -> AlphaHub:
+    """获取一个 mock 的 AlphaHub 对象
     """
 
     current_time = candle_feed.get_position_index_list()[0]
@@ -37,13 +38,13 @@ class CommonBrokerTest(unittest.TestCase):
     sol_candle_feed.load_data(solusdt_1min, TimeframeType.min1)
   
     broker = CommonBroker()
-    ontemplationer = Contemplationer(timeframe_level=TimeframeType.sec1, brokers=[broker])
-    ontemplationer.add_kline(candleFeed=sol_candle_feed)
-    _mock_ontemplationer = Mock(wraps=ontemplationer)
+    alphahub = AlphaHub(timeframe_level=TimeframeType.sec1,)
+    alphahub.add_kline(candleFeed=sol_candle_feed)
+    _mock_alphahub = Mock(wraps=alphahub)
 
     _account = broker.register_account()
     
-    ontemplationer.current_time = solusdt_1s.index[0]
+    alphahub.current_time = solusdt_1s.index[0]
     
     # broker.submit_order(
     #     trading_pair=common_trading_pair.SOLUSDTP,

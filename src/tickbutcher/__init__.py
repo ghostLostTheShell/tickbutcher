@@ -1,3 +1,3 @@
-from .contemplationer import Contemplationer
+from .alphahub import AlphaHub
 
-__all__ = ['Contemplationer']
+__all__ = ['AlphaHub']
