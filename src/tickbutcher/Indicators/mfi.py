@@ -4,8 +4,7 @@ MFI(资金流量指标,Money Flow Index)
 
 from collections import deque
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Deque, Dict
-from typing_extensions import Literal
+from typing import TYPE_CHECKING, Deque, Dict, Literal
 from tickbutcher.Indicators import DivergenceSignalState, Indicator, PosValue
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.candlefeed import CandleFeed

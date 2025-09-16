@@ -4,7 +4,7 @@ import uuid
 from tickbutcher.brokers.account import Account
 from tickbutcher.brokers.position import Position
 from tickbutcher.brokers.trading_pair import TradingPair
-from tickbutcher.commission import Commission, CommissionType, MakerTakerCommission
+from tickbutcher.commission import Commission, CommissionType, MakerCommission, TakerCommission
 from tickbutcher.order import Order, OrderStatus, OrderType, OrderSide
 from tickbutcher.brokers import Broker, OrderStatusEventCallback, PositionStatusEvent, OrderStatusEvent, PositionStatusEventCallback
 from tickbutcher.products import AssetType
@@ -21,19 +21,20 @@ class CommonBroker(Broker):
   order_completed_list: List[Order]
   order_pending_list: List[Order]
   _accounts:List[Account]
-  tradingPair_commission_map: Dict[TradingPair, Commission]
   name:str = "common_broker"
+  commission_map: Dict[CommissionType, 'Commission']
 
   def __init__(self):
     self.order_list = []
     self.order_completed_list = []
     self._accounts = []
-    self.default_commission = MakerTakerCommission(8, 10)
-    self.default_ps_commission = MakerTakerCommission(2, 5, c_type=CommissionType.MakerTakerOnQuote)
     self.order_changed_event_listener = []
     self.position_changed_event_listener = [] 
     self.order_pending_list = []
-    self.tradingPair_commission_map = {}
+    self.commission_map = {}
+    self.commission_map[CommissionType.Maker] = MakerCommission(8)
+    self.commission_map[CommissionType.Taker] = TakerCommission(10)
+    
     
   def add_pending_order(self, order:Order):
     if order.status is not OrderStatus.Pending and order.status is not OrderStatus.PartiallyFilled:
@@ -45,21 +46,12 @@ class CommonBroker(Broker):
     if order in self.order_pending_list:
       self.order_pending_list.remove(order)
 
-  def set_commission(self, trading_pair: TradingPair, commission:Commission):
-    self.tradingPair_commission_map[trading_pair] = commission
-  
-  def get_commission(self, trading_pair: TradingPair)->Commission:
-    result = self.tradingPair_commission_map.get(trading_pair)
-    if result is None:
-      match trading_pair.base.type:
-        case AssetType.PerpetualSwap:
-          self.tradingPair_commission_map.setdefault(trading_pair, self.default_ps_commission)
-          result = self.default_ps_commission
-        case _:
-          self.tradingPair_commission_map.setdefault(trading_pair, self.default_commission)
-          result = self.default_commission
-        
-    return result
+  def set_commission(self, commission: Commission, commission_type: CommissionType):
+    self.commission_map[commission_type] = commission
+
+  def get_commission(self, commission_type: CommissionType) -> Optional[Commission]:
+    return self.commission_map.get(commission_type)
+
 
   @property
   def accounts(self):

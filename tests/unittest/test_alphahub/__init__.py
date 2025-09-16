@@ -21,14 +21,15 @@ class TestStrategy(CommonStrategy):
     if mfi_result is None:
       return
     else:
-      if mfi_result.signal_strength > 0.5 and mfi_result.signal_strength < 0.8:
-        logger.info(f"{solusdt.get_iso_datetime()}:: {solusdt[0]} :: mfi:: {mfi_result.value} -- 买入信号")
-        self.long_entry(trading_pair=common_trading_pair.SOLUSDT,
+      if mfi_result.signal_strength > 0.4 and mfi_result.signal_strength < 0.8:
+        # logger.info(f"{solusdt.get_iso_datetime()}:: {solusdt[0]} :: mfi:: {mfi_result.value} -- 买入信号")
+        self.long_entry(common_trading_pair.SOLUSDT,
           quantity=0.1,
           order_type=OrderType.Market)
         
-      elif mfi_result.signal_strength <= -0.5 and mfi_result.signal_strength > -0.7:
-        logger.info(f"{solusdt.get_iso_datetime()}:: {solusdt[0]} :: mfi:: {mfi_result.value} -- 卖出信号")
+      elif mfi_result.signal_strength <= -0.6 and mfi_result.signal_strength > -0.7:
+        # logger.info(f"{solusdt.get_iso_datetime()}:: {solusdt[0]} :: mfi:: {mfi_result.value} -- 卖出信号")
+         self.long_close(common_trading_pair.SOLUSDT, order_type=OrderType.Market)
       elif mfi_result.signal_strength >= 0.9:
         logger.info(f"{solusdt.get_iso_datetime()}:: {solusdt[0]} :: mfi:: {mfi_result.value} -- 市场过热，谨慎买入")
       else:  
@@ -47,19 +48,47 @@ class AlphaHubUnitTest(unittest.TestCase):
     sol_candle_feed = PandasCandleFeed(trading_pair=common_trading_pair.SOLUSDT,
                                     timeframe_level=TimeframeType.min1,
                                     dataframe=solusdt_1min)
-    
-    ontemplationer = AlphaHub(timeframe_level=TimeframeType.min1)
-    ontemplationer.add_broker(CommonBroker)
-    ontemplationer.add_instrument_amount(amount=1000, instrument=common_product.USDT)
-    ontemplationer.add_instrument_amount(amount=1000, instrument=common_product.BTC)
-    ontemplationer.add_instrument_amount(amount=1000, instrument=common_product.ETH)
-    
-    ontemplationer.add_kline(candleFeed=sol_candle_feed)
 
-    ontemplationer.add_strategy(TestStrategy)
-    ontemplationer.add_indicator(MoneyFlowIndex)
+    alpha_hub = AlphaHub(timeframe_level=TimeframeType.min1)
+    alpha_hub.add_broker(CommonBroker)
+    alpha_hub.add_instrument_amount(amount=1000, instrument=common_product.USDT)
+    alpha_hub.add_instrument_amount(amount=1000, instrument=common_product.BTC)
+    alpha_hub.add_instrument_amount(amount=1000, instrument=common_product.ETH)
 
-    ontemplationer.run()
+    alpha_hub.add_kline(candleFeed=sol_candle_feed)
+    alpha_hub.add_strategy(TestStrategy)
+    alpha_hub.add_indicator(MoneyFlowIndex)
+
+    alpha_hub.run()
+    
+    broker = alpha_hub.get_broker(CommonBroker)
+    
+    
+    
+    for account in broker.accounts:
+      
+      # for order in account.order_list:
+      #   print(order)
+       
+      print("------------------------")
+
+      for position in account.position_list:
+        print(position)
+
+      print("========================")
+      for instrument, value in account.instrument_value_map.items():
+        alpha_hub.candle_list
+        usdt_value = 0.0
+        if instrument.symbol == 'USDT':
+          usdt_value = value
+        if instrument.symbol == 'BTC':
+          usdt_value = 0.0
+        if instrument.symbol == 'ETH':
+          usdt_value = 0.0
+        elif instrument.symbol == 'SOL':
+          usdt_value = value * alpha_hub.candle[0, 'SOLUSDT'].close
+        
+        logger.info(f"账户资产: {instrument.symbol} :: {value} udst价值: {usdt_value} ")
     
     self.assertEqual(True, True)
     

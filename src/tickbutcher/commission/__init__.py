@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import enum
-from typing import Literal, Optional, TypeAlias
 
 class CommissionType(enum.Enum):
   """_summary_
@@ -8,18 +7,13 @@ class CommissionType(enum.Enum):
   OnQuote后缀 义为基于交易对的报价货币统一收取，否则按交易所得物进行
   """
   FixedPerTrade = 0
-  FixedPerTradeOnQuote = 1
-  FixedRate = 2
-  FixedRateOnQuote=3
-  Tiered = 4
-  FixedOnQuote =5 
-  MakerTaker = 6
-  MakerTakerOnQuote =5 
+  FixedRate = 1
+  Tiered = 2
+  Maker = 3
+  Taker = 4
 
 class Commission(ABC):
   """抽象基类：定义手续费计算接口"""
-
-  commission_type: CommissionType
 
   @abstractmethod
   def calculate(self, value:float) -> float:
@@ -30,46 +24,27 @@ class Commission(ABC):
         """
         pass
 
-CommissionRateType: TypeAlias = Optional[Literal[
-      CommissionType.FixedRate,
-      CommissionType.FixedRateOnQuote
-  ]]
 class FixedRateCommission(Commission):
   """按成交金额比例收取手续费（常见方式，比如 0.1%）"""
 
-
-  def __init__(self, rate: int, *,
-               c_type: CommissionRateType = CommissionType.FixedRate):
+  def __init__(self, rate: int,):
       """
       :param rate: 手续费率，(万分之几) 比如 0.001 = 0.1%
       :param c_type: 只能为 CommissionType.FixedRate 或 CommissionType.FixedRateOnQuote
       """
-      if c_type not in (CommissionType.FixedRate, CommissionType.FixedRateOnQuote):
-          raise ValueError("c_type must be FixedRate or FixedRateOnQuote")
       self.rate = rate
-      self.commission_type = c_type
-
 
   def calculate(self, value:float) -> float:
       return value * self.rate
 
-
-CommissionFixedPerTradeType: TypeAlias = Optional[Literal[
-      CommissionType.FixedPerTrade,
-      CommissionType.FixedPerTradeOnQuote
-  ]]
 class FixedPerTradeCommission(Commission):
   """每笔交易收固定金额手续费"""
   commission_type = CommissionType.FixedPerTrade
 
-  def __init__(self, fee: int, *, c_type:CommissionFixedPerTradeType=CommissionType.FixedPerTrade):
+  def __init__(self, fee: int):
       """
       :param fee: 固定手续费，比如 5 USDT
-      :param c_type: 只能为 CommissionType.FixedPerTrade 或 CommissionType.FixedPerTradeOnQuote
       """
-      if c_type not in (CommissionType.FixedPerTrade, CommissionType.FixedPerTradeOnQuote):
-          raise ValueError("c_type must be FixedPerTrade or FixedPerTradeOnQuote")
-      self.commission_type = c_type
       self.fee = fee
 
   def calculate(self, value:float) -> int:
@@ -94,35 +69,28 @@ class TieredCommission(Commission):
     # fallback, should not reach here if tiers are set correctly
     return (value * self.tiers[-1][1]) / 10000
 
-
-CommissionMakerTakerType: TypeAlias = Optional[Literal[
-  CommissionType.MakerTaker,
-  CommissionType.MakerTakerOnQuote
-]]
-class MakerTakerCommission(Commission):
+class MakerCommission(Commission):
   """区分挂单和吃单手续费
   """
 
-  def __init__(self, 
-                maker_rate: int, 
-                taker_rate: int, 
-                *,
-                c_type:CommissionMakerTakerType=CommissionType.MakerTaker
-                ):
+  def __init__(self, maker_rate: int):
     """
     :param maker_rate: 挂单手续费率(万分之几)
-    :param taker_rate: 吃单手续费率(万分之几)
-    :param c_type: 只能为 CommissionType.MakerTaker 或 CommissionType.MakerTakerOnQuote
     """
-    if c_type not in [CommissionType.MakerTaker, CommissionType.MakerTakerOnQuote]:
-      raise ValueError("c_type must be CommissionType.MakerTaker or CommissionType.MakerTakerOnQuote")
-    
-    self.commission_type = c_type
     self.maker_rate = maker_rate
+
+  def calculate(self, value:float) -> float:
+    return (value * self.maker_rate) / 10000
+
+
+class TakerCommission(Commission):
+  """吃单手续费"""
+  def __init__(self, taker_rate: int):
+    """
+    :param taker_rate: 吃单手续费率(万分之几)
+    """
     self.taker_rate = taker_rate
+    self.commission_type = CommissionType.Taker
 
-
-
-  def calculate(self, value:float, is_taker: bool = True) -> float:
-    rate = self.taker_rate if is_taker else self.maker_rate
-    return (value * rate) / 10000
+  def calculate(self, value:float) -> float:
+    return (value * self.taker_rate) / 10000

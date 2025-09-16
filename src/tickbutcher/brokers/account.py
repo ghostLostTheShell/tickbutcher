@@ -1,9 +1,10 @@
 
 from typing import Dict, List, TYPE_CHECKING, Optional, Set
 
+
 from tickbutcher.brokers import OrderStatusEvent, PositionStatusEvent
 from tickbutcher.brokers import OrderStatusEvent
-from tickbutcher.commission import CommissionType
+from tickbutcher.commission import Commission, CommissionType
 from tickbutcher.log import logger
 from tickbutcher.order import OrderSide, OrderStatus, OrderType
 from tickbutcher.products import AssetType
@@ -24,6 +25,7 @@ class CollateralMargin:
   position: 'Position'
   amount: float
   instrument: 'FinancialInstrument'
+  commission_map: Dict[CommissionType, 'Commission']
 
   def __init__(self, position: 'Position', amount: float, instrument: 'FinancialInstrument'):
     self.position = position
@@ -95,18 +97,15 @@ class Account(object):
     order.execution_price = current.close
     order.execution_quantity = order.quantity
     #计算本次交易的手续费
-    commission = self.broker.get_commission(trading_pair)
-    match (commission.commission_type, order.side):
-      case (CommissionType.MakerTaker, OrderSide.Buy) :
+    commission = self.broker.get_commission(CommissionType.Maker)
+    order.commission_calculater=commission
+    if commission is None:
+      logger.error(f"没有设置手续费，无法交易: {trading_pair}")
+      raise SystemError(f"没有设置手续费，无法交易: {trading_pair}")
         
-        commission_value = commission.calculate(order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.base)
-        
-      case _:
-        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.quote)
-    
-    
+    commission_value = commission.calculate(order.execution_price * order.execution_quantity)
+    order.set_commission(commission_value, trading_pair.quote)
+
     match (order.trading_mode, order.pos_side, order.side):
       #逐仓模式
       case (TradingMode.Isolated, PosSide.Long, OrderSide.Buy):
@@ -185,21 +184,48 @@ class Account(object):
     order.execution_price = current.close
     order.execution_quantity = order.quantity
     #计算本次交易的手续费
-    commission = self.broker.get_commission(trading_pair)
-    match (commission.commission_type, order.side):
-      case (CommissionType.MakerTaker, OrderSide.Buy) :          
-        commission_value = commission.calculate(order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.base)
-        
-      case _:
-        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.quote)
+    commission = self.broker.get_commission(CommissionType.Maker)
+    order.commission_calculater=commission
+    if commission is None:
+      logger.error(f"没有设置手续费，无法交易: {trading_pair}")
+      raise SystemError(f"没有设置手续费，无法交易: {trading_pair}")
     
     match order.side:
       case OrderSide.Buy:
+        commission_value = commission.calculate(order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.base)
+       
+
+      case OrderSide.Sell:
+        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
+        order.set_commission(commission_value, trading_pair.quote)
+      
+      case _:
+        raise SystemError(f"不支持的手续费类型: {commission.commission_type} {order.side}")
+        
+    match order.side:
+      case OrderSide.Buy:
+        quote_amount = order.execution_price * order.execution_quantity
+        available = self.get_available_instrument(trading_pair.quote)
         if order.comm_settle_asset is order.trading_pair.base:
-          self.deposit(order.execution_quantity - order.commission, trading_pair.base)  
-        else: 
+          if available < quote_amount:
+            logger.debug(f"账户余额不足，无法买入: 需要 {quote_amount} {trading_pair.quote.symbol}, 可用 {available} {trading_pair.quote.symbol}")
+            order.status = OrderStatus.Rejected
+            self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+            return
+          
+          self.withdraw(quote_amount, trading_pair.quote)
+          self.deposit(order.execution_quantity - order.commission, trading_pair.base)
+          
+
+        else:
+          quote_amount = quote_amount + order.commission
+          if available < quote_amount:
+            logger.debug(f"账户余额不足，无法买入: 需要 {quote_amount + order.commission} {trading_pair.quote.symbol}, 可用 {available} {trading_pair.quote.symbol}")
+            order.status = OrderStatus.Rejected
+            self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+            return
+          self.withdraw(quote_amount, trading_pair.quote)
           self.deposit(order.execution_quantity, trading_pair.base)
           
         position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
@@ -223,7 +249,13 @@ class Account(object):
         if position is None:
           logger.error(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
           raise SystemError(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
-        
+        available = self.get_available_instrument(trading_pair.base)
+        if available < order.execution_quantity:
+            logger.debug(f"账户余额不足，无法卖出: 需要 {order.execution_quantity} {trading_pair.base.symbol}, 可用 {available} {trading_pair.base.symbol}")
+            order.status = OrderStatus.Rejected
+            self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+            return        
+        self.withdraw(order.execution_quantity, trading_pair.base)
         if order.comm_settle_asset is order.trading_pair.quote:
           self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote)
         else:
@@ -237,6 +269,7 @@ class Account(object):
         raise SystemError(f"不支持的订单方向: {order.side}")
     
     order.status = OrderStatus.Completed
+    order.completed_at = self.broker.get_alpha_hub().current_time
     self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
 
   def handle_spot_limit_order(self, order: 'Order'):
@@ -245,21 +278,26 @@ class Account(object):
     current = self.broker.get_alpha_hub().candle[0, order.trading_pair.id]
     order.execution_price = current.close
     order.execution_quantity = order.quantity
-    #计算本次交易的手续费
-    commission = self.broker.get_commission(trading_pair)
-    match (commission.commission_type, order.side):
-      case (CommissionType.MakerTaker, OrderSide.Buy) :
-        
-        commission_value = commission.calculate(order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.base)
-        
-      case _:
-        commission_value = commission.calculate(order.execution_price * order.execution_quantity)
-        order.set_commission(commission_value, trading_pair.quote)
+    
     
     match order.side:
       case OrderSide.Buy:
         if order.price >= current.close:
+          pre = self.broker.get_alpha_hub().candle[-1, trading_pair.id]
+          if current.close > pre.high:
+            commission = self.broker.get_commission(CommissionType.Taker)
+          else:
+            commission = self.broker.get_commission(CommissionType.Maker)
+          
+          if commission is None:
+            logger.error(f"没有设置手续费，无法交易: {trading_pair}")
+            raise SystemError(f"没有设置手续费，无法交易: {trading_pair}")
+          
+          commission_value = commission.calculate(order.execution_quantity)
+          order.set_commission(commission_value, trading_pair.base)
+          order.commission_calculater=commission
+          
+            
           if order.comm_settle_asset is order.trading_pair.base:
             self.deposit(order.execution_quantity - order.commission, trading_pair.base)
           else: 
@@ -286,6 +324,21 @@ class Account(object):
           pass
       case OrderSide.Sell:
         if order.price <= current.close:
+          
+          pre = self.broker.get_alpha_hub().candle[-1, trading_pair.id]
+          if current.close < pre.low:
+            commission = self.broker.get_commission(CommissionType.Taker)
+          else:
+            commission = self.broker.get_commission(CommissionType.Maker)
+          
+          if commission is None:
+            logger.error(f"没有设置手续费，无法交易: {trading_pair}")
+            raise SystemError(f"没有设置手续费，无法交易: {trading_pair}")
+          
+          commission_value = commission.calculate(order.execution_quantity)
+          order.set_commission(commission_value, trading_pair.base)
+          order.commission_calculater=commission          
+          
           position = self.get_open_position(trading_pair, trading_mode=TradingMode.Spot)
           if position is None:
             logger.error(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")

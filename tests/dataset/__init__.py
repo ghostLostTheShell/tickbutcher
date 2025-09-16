@@ -9,7 +9,7 @@ def get_sol_usdt_1s_and_1min():
   global sol_usdt_1s_dataframe, sol_usdt_1m_dataframe
   
   test_start_date = datetime.fromisoformat("2025-01-02T00:00:00+00:00:00")
-  end_start_date = datetime.fromisoformat("2025-01-10T00:00:00+00:00:00")
+  end_start_date = datetime.fromisoformat("2025-01-20T00:00:00+00:00:00")
 
   if sol_usdt_1s_dataframe is None:
       sol_usdt_1s_dataframe = load_dataframe_from_sql(inst_id='SOL/USDT',

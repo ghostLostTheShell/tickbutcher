@@ -24,7 +24,7 @@
       ]
     },
     {
-      "name": "[test] AlphaHubUnitTest",
+      "name": "[test] alphahub",
       "type": "debugpy",
       "request": "launch",
       "module": "unittest",

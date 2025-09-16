@@ -107,7 +107,7 @@ class AlphaHub:
         candle_feed.update(current_time)
 
       for indicator in self.indicators:
-        indicator.next()
+        indicator.next(current_time)
       
       for broker in self.brokers:
         broker.next()

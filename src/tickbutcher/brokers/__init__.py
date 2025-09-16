@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import TYPE_CHECKING, List, Optional
-from typing_extensions import Literal
+from typing import TYPE_CHECKING, Dict, List, Optional, Literal
 
+from tickbutcher.commission import CommissionType
 from tickbutcher.order import PosSide
 
 # 在运行时这个导入不会被执行，从而避免循环导入
@@ -45,6 +45,7 @@ class Broker(ABC):
   name:str
   alpha_hub:'AlphaHub'
   name:str
+  commission_map: Dict[CommissionType, 'Commission']
 
 
   @abstractmethod
@@ -95,14 +96,14 @@ class Broker(ABC):
   def get_alpha_hub(self) -> 'AlphaHub':
     ...
 
-  @abstractmethod
-  def set_commission(self, trading_pair: 'TradingPair', commission: 'Commission'):
-    pass
+  
 
   @abstractmethod
-  def get_commission(self, trading_pair: 'TradingPair') -> 'Commission':
-    pass
-  
+  def set_commission(self, commission: 'Commission', commission_type: CommissionType): ...
+
+  @abstractmethod
+  def get_commission(self, commission_type: CommissionType) -> Optional['Commission']: ...
+
   @abstractmethod
   def next(self):
     pass

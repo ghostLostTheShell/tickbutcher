@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
 import enum
 from typing import Optional, TYPE_CHECKING
+
+from tickbutcher.commission import Commission
 
 
 if TYPE_CHECKING:
@@ -63,13 +66,14 @@ class Order():
   execution_quantity:float    # 成交数量
   status:OrderStatus          # 订单状态
   created_at: int             # 订单创建时间
-  completed_at: int           # 订单结束时间
+  completed_at: Optional[int]  # 订单结束时间
   account: 'Account'          # 该订单所属的账户
   trading_mode:TradingMode    #交易模式
   pos_side:Optional[PosSide]    #仓位方向
   reduce_only:Optional[float]   #仅减仓
   commission:float              #手续费
   comm_settle_asset:'FinancialInstrument' # 手续费结算资产
+  commission_calculater:'Optional[Commission]' # 手续费计算器
 
   def __init__(self, 
                *,
@@ -96,6 +100,10 @@ class Order():
       self.trading_mode=trading_mode
       self.pos_side = pos_side
       self.reduce_only=reduce_only
+      self.completed_at = None
+      self.id = -1
+      self.created_at = 0
+      self.commission = 0.0
   
   def is_created(self):
     """判断当前的order状态是否还有机会进行处理"""
@@ -132,5 +140,31 @@ class Order():
                      settle_asset:'FinancialInstrument'):
     self.commission = commission
     self.comm_settle_asset = settle_asset
+
+  def __str__(self):
+    if self.completed_at is None:
+      completed_at = "None"
+    else:
+      completed_at = datetime.fromtimestamp(self.completed_at, tz=timezone.utc).isoformat()
+      
+    return '{' + \
+            f'\n"id":{self.id}' +\
+            f',\n "trading_pair":{self.trading_pair}' +\
+            f',\n "quantity":{self.quantity}' +\
+            f',\n "side":{self.side}' +\
+            f',\n "status":{self.status}' +\
+            f',\n "order_type":{self.order_type}' +\
+            f',\n "price":{self.price}' +\
+            f',\n "execution_price":{self.execution_price}' +\
+            f',\n "execution_quantity":{self.execution_quantity}' +\
+            f',\n "created_at":{datetime.fromtimestamp(self.created_at, tz=timezone.utc).isoformat()}' +\
+            f',\n "completed_at":{completed_at}' +\
+            f',\n "trading_mode":{self.trading_mode}' +\
+            f',\n "pos_side":{self.pos_side}' +\
+            f',\n "reduce_only":{self.reduce_only}' +\
+            '\n}'
+
+  def __repr__(self):
+    return f"Order(id={self.id}, trading_pair={self.trading_pair}, quantity={self.quantity}, side={self.side}, status={self.status})"
 
 __ALL__ = ['Order', 'OrderType', 'OrderSide', 'OrderStatus', 'PosSide', 'TradingMode', 'PositionStatus', 'Position']

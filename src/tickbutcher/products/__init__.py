@@ -43,3 +43,6 @@ class FinancialInstrument():
     self.symbol = symbol
     self.type = type
     self.precision = precision
+    
+  def __str__(self):
+     return f"{self.symbol}_{self.type}*{self.precision})"

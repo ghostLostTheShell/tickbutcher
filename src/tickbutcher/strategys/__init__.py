@@ -29,11 +29,11 @@ class Strategy(ABC):
   @abstractmethod
   def long_close(self, 
                  trading_pair: TradingPair, 
-                 quantity:float,
                  *, 
-                 order_type: OrderType, 
+                 order_type: OrderType,
+                 quantity:Optional[float]=None,
                  price:Optional[float]=None,
-                 trading_mode: Optional[TradingMode]=None): ...
+                 trading_mode: Optional[TradingMode]=None,): ...
 
   @abstractmethod
   def short_entry(self, 

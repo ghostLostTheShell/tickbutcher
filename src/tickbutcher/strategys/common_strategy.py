@@ -1,6 +1,7 @@
 from tickbutcher.brokers import Broker
 from tickbutcher.brokers.account import Account
 from tickbutcher.brokers.trading_pair import TradingPair
+from tickbutcher.log import logger
 from tickbutcher.order import OrderSide, OrderType, PosSide, TradingMode
 from tickbutcher.products import AssetType
 from tickbutcher.strategys import Strategy
@@ -62,13 +63,30 @@ class CommonStrategy(Strategy):
   
   def long_close(self, 
                  trading_pair: TradingPair, 
-                 quantity:float,
                  *, 
-                 order_type: OrderType, 
+                 order_type: OrderType,
+                 quantity:Optional[float]=None,
                  price:Optional[float]=None,
                  trading_mode: Optional[TradingMode]=None,
                  ):
-    pass
+    
+    if quantity is None:
+      open_position = self.get_open_position(trading_pair=trading_pair, pos_side=PosSide.Long, trading_mode=trading_mode)
+      if open_position is None:
+        logger.warning(f"没有找到对应的仓位: {trading_pair} {trading_mode} {PosSide.Long}")
+        return
+      quantity = open_position.amount
+      
+    self.broker.submit_order(
+      account=self.account,
+      trading_pair=trading_pair,
+      order_type=order_type,
+      quantity=quantity,
+      price=price,
+      side=OrderSide.Sell,
+      pos_side=PosSide.Long,
+      trading_mode=trading_mode,
+    )
 
   def short_entry(self, 
                  trading_pair: TradingPair, 

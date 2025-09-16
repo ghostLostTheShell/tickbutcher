@@ -151,18 +151,19 @@ class Position(object):
 
         # 如果全部平仓，重置状态
         if self.amount == 0:
+          self.status = PositionStatus.Closed 
           self.total_cost = 0.0
           self.avg_price = 0.0
         
 
   def __str__(self):
-    return "{\n" + \
-      f" id: {self.id},\n" + \
-      f" entry_price: {self.entry_price},\n" + \
-      f" amount: {self.amount},\n" + \
-      f" status: {self.status},\n" + \
-      f" pos_side: {self.pos_side},\n" + \
-      f" trading_mode: {self.trading_mode},\n" + \
-      f" realized_pnl: {self.realized_pnl},\n" + \
-      f" status: {self.status}\n" + \
-      "}"
+    return "{" + \
+      f"\nid: {self.id}," + \
+      f"\nentry_price: {self.entry_price}," + \
+      f"\namount: {self.amount}," + \
+      f"\nstatus: {self.status}," + \
+      f"\npos_side: {self.pos_side}," + \
+      f"\ntrading_mode: {self.trading_mode}," + \
+      f"\nrealized_pnl: {self.realized_pnl}," + \
+      f"\nstatus: {self.status}" + \
+      "\n}"

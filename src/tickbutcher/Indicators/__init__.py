@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Deque, Dict, Generic, Set, TypeVar
+from tickbutcher import NumberLike, Runnable
 from tickbutcher.brokers.trading_pair import TradingPair
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.candlefeed import CandleFeed
@@ -22,7 +23,8 @@ class PosValue(Generic[V]):
 
 R = TypeVar("R")
 
-class Indicator(Generic[R], object):
+class Indicator(Generic[R], Runnable): 
+
   AlphaHub: 'AlphaHub'
   name:str
   result:Dict['TradingPair', Deque[R]]
@@ -62,7 +64,7 @@ class Indicator(Generic[R], object):
     ...
 
   
-  def next(self):
+  def next(self, time:NumberLike) -> None:
     for candle in self.AlphaHub.candle_list:
       timeframe_level = candle.timeframe_level.value
       while True:
