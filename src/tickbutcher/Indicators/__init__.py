@@ -22,12 +22,11 @@ class PosValue(Generic[V]):
     self.value = value
 
 R = TypeVar("R")
-
 class Indicator(Generic[R], Runnable): 
 
   AlphaHub: 'AlphaHub'
   name:str
-  result:Dict['TradingPair', Deque[R]]
+  result:Dict['TradingPair', Dict[TimeframeType, Deque[R]]]
   exclude_timeframes:Set[TimeframeType]
 
   def __init__(self, *, exclude_timeframes:Set[TimeframeType]=set()):
@@ -43,21 +42,20 @@ class Indicator(Generic[R], Runnable):
   def set_alpha_hub(self, AlphaHub: 'AlphaHub'):
     self.AlphaHub = AlphaHub
 
-  def get_result(self, trading_pair:'TradingPair'):
-    value = self.result.get(trading_pair)
+  def get_result(self, trading_pair:'TradingPair', timeframe: TimeframeType):
+    value = self.result.get(trading_pair, {}).get(timeframe)
     if value is None:
       raise ValueError(f"获取交易对异常{trading_pair.id}")
     return value
-  
-  def get_curret_result(self, trading_pair:'TradingPair'):
-    v = self.result.get(trading_pair)
+
+  def get_current_result(self, trading_pair:'TradingPair', timeframe: TimeframeType):
+    v = self.result.get(trading_pair, {}).get(timeframe)
     if v is None or len(v) == 0:
       return None
     return v[-1]
     
-    
-  def calculate(self, 
-                *, 
+  def calculate(self,
+                *,
                 position:int,
                 candle:CandleFeed, 
                 timeframe: TimeframeType):

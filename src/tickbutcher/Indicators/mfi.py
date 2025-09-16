@@ -27,12 +27,12 @@ class MFIResult(PosValue[float]):
     
 class MoneyFlowIndex(Indicator[MFIResult]):
   name:str = 'mfi'
-  _tp_window:Dict['TradingPair', Deque[PosValue[float]]]
-  _pos_mf:Dict['TradingPair', Deque[PosValue[float]]]
-  _neg_mf:Dict['TradingPair', Deque[PosValue[float]]]
+  _tp_window:Dict['TradingPair', Dict[TimeframeType,Deque[PosValue[float]]]]
+  _pos_mf:Dict['TradingPair', Dict[TimeframeType,Deque[PosValue[float]]]]
+  _neg_mf:Dict['TradingPair', Dict[TimeframeType,Deque[PosValue[float]]]]
   period:int
   result_maxlen:int
-  trend_strength_handle: Callable[['TradingPair'], float]
+  trend_strength_handle: Callable[['TradingPair', TimeframeType], float]
   
   def __init__(self, *, 
                period:int=14, 
@@ -53,31 +53,40 @@ class MoneyFlowIndex(Indicator[MFIResult]):
 
   def init(self):
     for candle in self.AlphaHub.candle_list:
-      self._tp_window[candle.trading_pair] = deque(maxlen=self.period)
-      self._pos_mf[candle.trading_pair] = deque(maxlen=self.period)
-      self._neg_mf[candle.trading_pair] = deque(maxlen=self.period)
-      self.result[candle.trading_pair] = deque(maxlen=self.result_maxlen)
+      self._tp_window[candle.trading_pair] = {}
+      self._pos_mf[candle.trading_pair] = {} 
+      self._neg_mf[candle.trading_pair] = {}
+      self.result[candle.trading_pair] = {}
+
+      for timeframe in TimeframeType:
+        if timeframe in self.exclude_timeframes:
+          continue
+        
+        self._tp_window[candle.trading_pair][timeframe] = deque(maxlen=self.period)
+        self._pos_mf[candle.trading_pair][timeframe] = deque(maxlen=self.period)
+        self._neg_mf[candle.trading_pair][timeframe] = deque(maxlen=self.period)
+        self.result[candle.trading_pair][timeframe] = deque(maxlen=self.result_maxlen)
   
-  def get_tp_window(self, trading_pair:'TradingPair'):
-    value = self._tp_window.get(trading_pair)
+  def get_tp_window(self, trading_pair:'TradingPair', timeframe: TimeframeType):
+    value = self._tp_window.get(trading_pair, {}).get(timeframe)
     if value is None:
       raise ValueError(f"获取交易对异常{trading_pair.id}")
     return value
   
-  def get_pos_mf(self, trading_pair:'TradingPair'):
-    value = self._pos_mf.get(trading_pair)
+  def get_pos_mf(self, trading_pair:'TradingPair', timeframe: TimeframeType):
+    value = self._pos_mf.get(trading_pair, {}).get(timeframe)
     if value is None:
       raise ValueError(f"获取交易对异常{trading_pair.id}")
     return value
   
-  def get_neg_mf(self, trading_pair:'TradingPair'):
-    value = self._neg_mf.get(trading_pair)
+  def get_neg_mf(self, trading_pair:'TradingPair', timeframe: TimeframeType):
+    value = self._neg_mf.get(trading_pair, {}).get(timeframe)
     if value is None:
       raise ValueError(f"获取交易对异常{trading_pair.id}")
-    return value  
-    
-  def get_result(self, trading_pair:'TradingPair'):
-    value = self.result.get(trading_pair)
+    return value
+
+  def get_result(self, trading_pair:'TradingPair', timeframe: TimeframeType):
+    value = self.result.get(trading_pair, {}).get(timeframe)
     if value is None:
       raise ValueError(f"获取交易对异常{trading_pair.id}")
     return value     
@@ -99,9 +108,9 @@ class MoneyFlowIndex(Indicator[MFIResult]):
     tp = (high + low + close) / 3.0
     mf = tp * volume
 
-    tp_window = self.get_tp_window(trading_pair)
-    pos_mf = self.get_pos_mf(trading_pair)
-    neg_mf = self.get_neg_mf(trading_pair)
+    tp_window = self.get_tp_window(trading_pair, timeframe)
+    pos_mf = self.get_pos_mf(trading_pair, timeframe)
+    neg_mf = self.get_neg_mf(trading_pair, timeframe)
     
     if tp_window:  # 有前值
         tp_prev = tp_window[-1]
@@ -138,10 +147,10 @@ class MoneyFlowIndex(Indicator[MFIResult]):
         mr = pos_sum / neg_sum
         value = 100 - 100 / (1 + mr)  
 
-    result=self.get_result(trading_pair)
+    result=self.get_result(trading_pair, timeframe)
 
-    divergence_signal = self.detect_divergence(trading_pair)
-  
+    divergence_signal = self.detect_divergence(trading_pair, timeframe)
+
     mfi_result = MFIResult(
         position=series_p,
         value=value,
@@ -153,12 +162,12 @@ class MoneyFlowIndex(Indicator[MFIResult]):
         result.append(mfi_result)
     else:
         result[-1] = mfi_result
-        
-    mfi_result.signal_strength = self.trend_strength_handle(trading_pair)
-        
-      
-  def _trend_strength_avg(self, trading_pair: 'TradingPair') -> float:
-    result = self.get_result(trading_pair)
+
+    mfi_result.signal_strength = self.trend_strength_handle(trading_pair, timeframe)
+
+
+  def _trend_strength_avg(self, trading_pair: 'TradingPair', timeframe: TimeframeType) -> float:
+    result = self.get_result(trading_pair, timeframe=timeframe)
     if not result:
         return 0.0
     avg = sum(i.value for i in result) / len(result)
@@ -166,11 +175,11 @@ class MoneyFlowIndex(Indicator[MFIResult]):
     norm = (avg - 50) / 30
     return round(norm, 2)
 
-  def detect_divergence(self, trading_pair: 'TradingPair') -> DivergenceSignalState:
+  def detect_divergence(self, trading_pair: 'TradingPair', timeframe: TimeframeType) -> DivergenceSignalState:
     """
     简单背离检测：找最近 lookback 范围的局部极值
     """
-    result=self.get_result(trading_pair)
+    result=self.get_result(trading_pair, timeframe)
     # lookback = 
     if len(result) < self.period:
         return DivergenceSignalState.NONE

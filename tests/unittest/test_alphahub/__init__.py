@@ -16,7 +16,7 @@ class TestStrategy(CommonStrategy):
   
   def next(self):
     mfi = self.alpha_hub.get_indicator('mfi', MoneyFlowIndex) 
-    mfi_result = mfi.get_curret_result(common_trading_pair.SOLUSDT)
+    mfi_result = mfi.get_current_result(common_trading_pair.SOLUSDT, TimeframeType.min1)
     solusdt = self.candled.SOLUSDT
     if mfi_result is None:
       return
@@ -24,7 +24,7 @@ class TestStrategy(CommonStrategy):
       if mfi_result.signal_strength > 0.4 and mfi_result.signal_strength < 0.8:
         # logger.info(f"{solusdt.get_iso_datetime()}:: {solusdt[0]} :: mfi:: {mfi_result.value} -- 买入信号")
         self.long_entry(common_trading_pair.SOLUSDT,
-          quantity=0.1,
+          quantity=0.5 * mfi_result.signal_strength,
           order_type=OrderType.Market)
         
       elif mfi_result.signal_strength <= -0.6 and mfi_result.signal_strength > -0.7:
