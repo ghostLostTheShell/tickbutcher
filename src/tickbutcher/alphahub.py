@@ -70,12 +70,12 @@ class AlphaHub:
   def set_current_time(self, current_time: int):
     self.current_time = current_time
 
-  def add_indicator(self, indicator:'Callable[P, Indicator[Any]]', *args:'P.args', **kwargs:'P.kwargs') -> None:
+  def add_indicator(self, name:str, indicator:'Callable[P, Indicator[Any]]',  *args:'P.args', **kwargs:'P.kwargs') -> None:
     new_indicator = indicator(*args, **kwargs)
     new_indicator.set_alpha_hub(self)
     new_indicator.init()
     self.indicators.append(new_indicator)
-    self.indicators_map[new_indicator.name] = new_indicator
+    self.indicators_map[name] = new_indicator
     
 
   def add_strategy(self, strategy:'Callable[P, S]', *args:'P.args', **kwargs:'P.kwargs') -> None:

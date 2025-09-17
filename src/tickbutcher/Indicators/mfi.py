@@ -35,10 +35,11 @@ class MoneyFlowIndex(Indicator[MFIResult]):
   trend_strength_handle: Callable[['TradingPair', TimeframeType], float]
   
   def __init__(self, *, 
-               period:int=14, 
-               result_maxlen:int=50,
-               trend_strength_mode:Literal['instant', 'avg']= 'avg'):
-    super().__init__()
+                period:int=14, 
+                result_maxlen:int=50,
+                exclude_timeframes:set[TimeframeType]=set(),
+                trend_strength_mode:Literal['instant', 'avg']= 'avg'):
+    super().__init__(exclude_timeframes=exclude_timeframes)
     self._tp_window = {}
     self._pos_mf = {}
     self._neg_mf = {}

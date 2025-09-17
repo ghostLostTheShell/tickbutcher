@@ -24,7 +24,7 @@ class TestStrategy(CommonStrategy):
       if mfi_result.signal_strength > 0.4 and mfi_result.signal_strength < 0.8:
         # logger.info(f"{solusdt.get_iso_datetime()}:: {solusdt[0]} :: mfi:: {mfi_result.value} -- 买入信号")
         self.long_entry(common_trading_pair.SOLUSDT,
-          quantity=0.5 * mfi_result.signal_strength,
+          quantity=0.05 * mfi_result.signal_strength,
           order_type=OrderType.Market)
         
       elif mfi_result.signal_strength <= -0.6 and mfi_result.signal_strength > -0.7:
@@ -57,7 +57,7 @@ class AlphaHubUnitTest(unittest.TestCase):
 
     alpha_hub.add_kline(candleFeed=sol_candle_feed)
     alpha_hub.add_strategy(TestStrategy)
-    alpha_hub.add_indicator(MoneyFlowIndex)
+    alpha_hub.add_indicator('mfi', MoneyFlowIndex, exclude_timeframes={TimeframeType.sec1})
 
     alpha_hub.run()
     
