@@ -13,7 +13,7 @@ dependencies = [
 
 [project.optional-dependencies]
 sqlalchemy = ["sqlalchemy (>=2.0.43,<3.0.0)"]
-asyncsqlchemy = ["sqlalchemy[asyncio] (>=2.0.43,<3.0.0)"]
+asyncsqlchemy = ["sqlalchemy[asyncio] (>=2.0.43,<3.0.0)", "aiosqlite (>=0.21.0,<0.22.0)"]
 matplotlib = ["matplotlib (>=3.10.6,<4.0.0)"]
 httpx = ["httpx (>=0.28.1,<0.29.0)"]
 

@@ -100,6 +100,15 @@
       "request": "launch",
       "module": "unittest",
       "args": ["demo.AlphaHub.demo1"]
+    },
+    {
+      "name": "tickbutcher.data.put_to_db",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "tickbutcher.data.put_to_db",
+      "args": ["--code=APPL/USD", 
+      "--timeframe=d1", "--start_date=2024-09-01T00:00:00Z", "--end_date=2024-10-01T00:00:00Z", 
+      "--limit=100", "--api_key=FB8g28NhvGW07rmHDGk2ReKyJfOgfAsg", "--exchange=polygon"]
     }
   ]
 }
