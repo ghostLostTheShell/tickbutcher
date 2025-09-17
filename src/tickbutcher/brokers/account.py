@@ -14,7 +14,6 @@ from tickbutcher.brokers.position import Position
 # 在运行时这个导入不会被执行，从而避免循环导入
 if TYPE_CHECKING:
   from tickbutcher.brokers import Broker
-  
   from tickbutcher.brokers.trading_pair import TradingPair
   from tickbutcher.order import Order
   from tickbutcher.brokers.margin import MarginType
@@ -77,7 +76,17 @@ class Account(object):
       self.collateral_margin_list.append(collateral_margin)
       self._collateral_margin_map[position] = collateral_margin
 
-
+  #退还保证金
+  def return_margin(self, position: 'Position'):
+    """退还保证金"""
+    collateral_margin = self._collateral_margin_map.get(position)
+    if collateral_margin:
+      self.collateral_margin_list.remove(collateral_margin)
+      del self._collateral_margin_map[position]
+      return collateral_margin.amount
+    
+    raise ValueError(f"没有找到对应的保证金信息: {position}")
+  
   def reduce_margin(self, amount: float, position: 'Position'):
     """减少保证金"""
     collateral_margin = self._collateral_margin_map.get(position)
@@ -125,14 +134,23 @@ class Account(object):
         # 增加仓位保证金
         position_leverage = self.get_leverage(trading_pair)
         margin = order.execution_quantity * order.execution_price / position_leverage
+        
+        # 进行交易
+        available = self.get_available_instrument(trading_pair.quote)
+        required = margin + order.commission
+        if available < required:
+          logger.debug(f"账户余额不足，无法买入: 需要 {required} {trading_pair.quote.symbol}, 可用 {available} {trading_pair.quote.symbol}")
+          order.status = OrderStatus.Rejected
+          self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+          return
+
         self.add_margin(margin, position)
 
-        # 进行交易
         if order.comm_settle_asset is order.trading_pair.base:
-          self.deposit(order.execution_quantity - order.commission, trading_pair.base)  
-        else: 
           self.deposit(order.execution_quantity, trading_pair.base)
 
+        else: 
+          self.deposit(order.execution_quantity, trading_pair.base)
 
         order.status = OrderStatus.Completed
         self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
@@ -146,10 +164,24 @@ class Account(object):
           logger.warning(f"没有找到对应的仓位: {trading_pair} {order.trading_mode} {order.pos_side}")
           order.status = OrderStatus.Rejected
         else:
-          position_leverage = self.get_leverage(trading_pair)
-          margin = order.execution_quantity * order.execution_price / position_leverage
           #计算盈利
+          available = self.get_available_instrument(trading_pair.base)
+          if available < order.execution_quantity:
+            logger.debug(f"账户余额不足，无法卖出: 需要 {order.execution_quantity} {trading_pair.base.symbol}, 可用 {available} {trading_pair.base.symbol}")
+            order.status = OrderStatus.Rejected
+            self.broker.trigger_order_changed_event(OrderStatusEvent(order=order, event_type=order.status))
+            return
+          
+          self.withdraw(order.execution_quantity, trading_pair.base)
+          if order.comm_settle_asset is order.trading_pair.quote:
+            self.deposit(order.execution_price * order.execution_quantity - order.commission, trading_pair.quote)  
+          else: 
+            self.deposit(order.execution_price * (order.execution_quantity - order.commission), trading_pair.quote)
+            
           position.add_order(order)
+
+          if position.is_closed():
+            margin = self.return_margin(position)
 
       case (TradingMode.Isolated, PosSide.Short, OrderSide.Buy):
         # 逐仓空仓平仓
@@ -194,7 +226,6 @@ class Account(object):
       case OrderSide.Buy:
         commission_value = commission.calculate(order.execution_quantity)
         order.set_commission(commission_value, trading_pair.base)
-       
 
       case OrderSide.Sell:
         commission_value = commission.calculate(order.execution_price * order.execution_quantity)

@@ -45,6 +45,7 @@ class Position(object):
                pos_side: 'PosSide',
                trading_mode: 'TradingMode',
                ):
+    self.leverage = leverage
     self.trading_pair = trading_pair
     self.id = id
     self.orders = []

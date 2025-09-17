@@ -49,7 +49,7 @@ class Binance:
     return data
     
   
-  async def fetch_ohlcv(self, symbol:str, timeframe:str, start_time:int, end_time:int, limit:int=500):
+  async def fetch_ohlcv(self, symbol:str, timeframe:str, since:int, limit:int=500):
     url = f"{self.spot_base_url}/klines"
     if self.is_perpetual_swap(symbol):
       url = f"{self.ps_base_url}/klines"
@@ -62,12 +62,16 @@ class Binance:
     params = {
         "symbol": symbol,
         "interval": timeframe,
-        "startTime": start_time,
-        "endTime": end_time,
+        "startTime": since,
+        # "endTime": end_time,
         "limit": limit
     }
     response = await self.session.get(url, params=params)
     if response.status_code != 200:
         raise Exception(f"Error fetching data: {response.text}")
     data = response.json()
+    # 将字符数据转换为浮点数
+    # data = [[int(item[0]), float(item[1]), float(item[2]), float(item[3]), float(item[4]), float(item[5])] for item in data]
+    # [ timestamp, open, high, low, close, volume ]
+    
     return data
