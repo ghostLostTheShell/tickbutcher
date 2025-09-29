@@ -10,7 +10,7 @@ from typing import Callable, Dict, List, TYPE_CHECKING, Optional, Type, TypeVar,
 if TYPE_CHECKING:
   from tickbutcher.brokers import Broker
   from tickbutcher.strategys import Strategy
-  from tickbutcher.Indicators import Indicator
+  from tickbutcher.indicators import Indicator
   from tickbutcher.brokers.account import Account
   from tickbutcher.products import FinancialInstrument
   

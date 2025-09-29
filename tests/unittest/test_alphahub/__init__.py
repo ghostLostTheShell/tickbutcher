@@ -9,7 +9,7 @@ from tickbutcher.brokers.trading_pair import common as common_trading_pair
 from tickbutcher.log import logger
 from tickbutcher.order import OrderType
 from tickbutcher.strategys.common_strategy import CommonStrategy
-from tickbutcher.Indicators.mfi import MoneyFlowIndex
+from tickbutcher.indicators.mfi import MoneyFlowIndex
 from tickbutcher.products import common as common_product
 
 class TestStrategy(CommonStrategy):

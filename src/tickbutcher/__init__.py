@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numbers import Number
 
+
 NumberLike = Number | np.generic | int | float
 class Runnable(ABC): 
   @abstractmethod
