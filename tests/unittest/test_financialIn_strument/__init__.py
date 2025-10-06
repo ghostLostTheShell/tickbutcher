@@ -9,9 +9,9 @@ class FinancialInStrumentUnitTest(unittest.TestCase):
   def test_create(self):
     instrument = FinancialInstrument(symbol="Test Instrument", type=AssetType.STOCK)
     
-    value_error:ValueError = None
+    value_error = None
     try:
-      instrument_1 = FinancialInstrument(symbol="Test Instrument", type=AssetType.FUTURE)
+      FinancialInstrument(symbol="Test Instrument", type=AssetType.FUTURE)
     except ValueError as err:
       value_error = err
 
@@ -23,5 +23,29 @@ class FinancialInStrumentUnitTest(unittest.TestCase):
     btc = FinancialInstrument(symbol="BTC", type=AssetType.CRYPTO)
     common.BTC = btc
     self.assertEqual(common.BTC, btc)
+  
+  def test_get_by_symbol(self):
+    """测试get_by_symbol方法"""
+    # 测试获取已存在的symbol
+    usdt_instance = FinancialInstrument.get_by_symbol("USDT")
+    self.assertIsNotNone(usdt_instance)
+    self.assertEqual(usdt_instance.symbol, "USDT")
+    self.assertEqual(usdt_instance, common.USDT)
+    
+    btc_instance = FinancialInstrument.get_by_symbol("BTC")
+    self.assertIsNotNone(btc_instance)
+    self.assertEqual(btc_instance.symbol, "BTC")
+    self.assertEqual(btc_instance, common.BTC)
+    
+    eth_instance = FinancialInstrument.get_by_symbol("ETH")
+    self.assertIsNotNone(eth_instance)
+    self.assertEqual(eth_instance.symbol, "ETH")
+    self.assertEqual(eth_instance, common.ETH)
+    
+    # 测试获取不存在的symbol应该抛出KeyError
+    with self.assertRaises(KeyError) as context:
+      FinancialInstrument.get_by_symbol("UNKNOWN_SYMBOL")
+    
+    self.assertIn("UNKNOWN_SYMBOL", str(context.exception))
     
     

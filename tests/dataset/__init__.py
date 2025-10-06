@@ -2,10 +2,12 @@ from datetime import datetime
 from tickbutcher.candlefeed.pandascandlefeed import load_dataframe_from_sql
 from . import sol
 from . import btc
+from pandas import DataFrame
+from typing import Tuple, Optional
 
-sol_usdt_1s_dataframe=None
-sol_usdt_1m_dataframe=None
-def get_sol_usdt_1s_and_1min():
+sol_usdt_1s_dataframe:Optional[DataFrame]=None
+sol_usdt_1m_dataframe:Optional[DataFrame]=None
+def get_sol_usdt_1s_and_1min() -> Tuple[DataFrame, DataFrame]:
   global sol_usdt_1s_dataframe, sol_usdt_1m_dataframe
   
   test_start_date = datetime.fromisoformat("2025-01-02T00:00:00+00:00:00")

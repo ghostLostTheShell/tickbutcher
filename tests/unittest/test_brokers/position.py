@@ -8,7 +8,7 @@ from tickbutcher.brokers.common_broker import CommonBroker
 from tickbutcher.brokers.position import Position, PositionStatus
 from tickbutcher.candlefeed import TimeframeType
 from tickbutcher.candlefeed.pandascandlefeed import PandasCandleFeed
-from tickbutcher.AlphaHub import AlphaHub
+from tickbutcher.alphahub import AlphaHub
 from tickbutcher.order import Order, OrderSide, OrderStatus, OrderType, PosSide, TradingMode
 from tickbutcher.products import FinancialInstrument, common as comm_fi
 from tickbutcher.brokers.trading_pair import TradingPair, common as common_tp
@@ -51,7 +51,7 @@ class PositionTest(unittest.TestCase):
     sol_candle_feed.load_data(solusdt_1min, TimeframeType.min1)
 
     broker = CommonBroker()
-    ontemplationer = AlphaHub(timeframe_level=TimeframeType.sec1, brokers=[broker])
+    ontemplationer = AlphaHub(timeframe_level=TimeframeType.sec1)
     ontemplationer.add_kline(candleFeed=sol_candle_feed)
     _mock_ontemplationer = Mock(wraps=ontemplationer)
 
