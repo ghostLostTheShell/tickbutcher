@@ -43,6 +43,23 @@ class FinancialInstrument():
     self.symbol = symbol
     self.type = type
     self.precision = precision
+  
+  @classmethod
+  def get_by_symbol(cls, symbol: str) -> 'FinancialInstrument':
+    """根据symbol获取FinancialInstrument实例
+    
+    Args:
+        symbol: 金融工具的标识符
+        
+    Returns:
+        FinancialInstrument实例
+        
+    Raises:
+        KeyError: 如果symbol不存在
+    """
+    if symbol not in cls.__all__symbol_instances_table:
+      raise KeyError(f"FinancialInstrument with symbol '{symbol}' not found")
+    return cls.__all__symbol_instances_table[symbol]
     
   def __str__(self):
      return f"{self.symbol}_{self.type}*{self.precision})"

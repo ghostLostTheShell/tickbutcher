@@ -25,7 +25,7 @@ R = TypeVar("R")
 class Indicator(Generic[R], Runnable): 
 
   AlphaHub: 'AlphaHub'
-  name:str
+  name:str='indicator'
   result:Dict['TradingPair', Dict[TimeframeType, Deque[R]]]
   exclude_timeframes:Set[TimeframeType]
 

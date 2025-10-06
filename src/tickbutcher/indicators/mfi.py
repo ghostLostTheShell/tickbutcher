@@ -24,7 +24,7 @@ class MFIResult(PosValue[float]):
     super().__init__(position=position, value=value)
     self.signal_strength = signal_strength
     self.divergence_signal = divergence_signal
-    
+
 class MoneyFlowIndex(Indicator[MFIResult]):
   name:str = 'mfi'
   _tp_window:Dict['TradingPair', Dict[TimeframeType,Deque[PosValue[float]]]]
@@ -198,3 +198,5 @@ class MoneyFlowIndex(Indicator[MFIResult]):
     #     return "底背离"
     
     return DivergenceSignalState.NONE
+  
+__ALL__ = ['MoneyFlowIndex', 'MFIResult']
